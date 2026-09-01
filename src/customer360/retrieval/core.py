@@ -66,6 +66,16 @@ def chunk_markdown(path: Path, *, version: str = "v1", max_words: int = 120) -> 
     return chunks
 
 
+def load_markdown_chunks(root: Path, *, version: str = "v1") -> list[Chunk]:
+    """Load a deterministic, recursive Markdown corpus for index rebuilds."""
+
+    paths = [root] if root.is_file() else sorted(root.rglob("*.md"))
+    chunks = [chunk for path in paths for chunk in chunk_markdown(path, version=version)]
+    if not chunks:
+        raise ValueError(f"No Markdown documents found under {root}")
+    return chunks
+
+
 class HashEmbedder:
     """Deterministic embedding used only for tests and smoke demos."""
 

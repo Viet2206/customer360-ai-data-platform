@@ -14,9 +14,9 @@ The project uses synthetic data only. It is not a production system, does not pr
 - Delta Bronze, Silver, Gold, quarantine, quality results, and pipeline audit manifests.
 - Explainable deterministic/weighted identity resolution, survivorship, crosswalks, and precision/recall evaluation.
 - Atomic PostgreSQL Member 360 publication with Gold run lineage.
-- FastAPI member list/detail endpoints, masked analytics persona, health, and Prometheus metrics.
-- Markdown chunking, Ollama embedding adapter, OpenSearch BM25/k-NN retrieval with reciprocal-rank fusion, citations, and abstention.
-- Streamlit Member 360 interface and optional Docker Compose application/AI profiles.
+- FastAPI member list/detail and document-search endpoints, masked analytics persona, health, and Prometheus metrics.
+- Markdown corpus indexing, Ollama embedding adapter, OpenSearch BM25/k-NN retrieval with reciprocal-rank fusion, citations, and abstention.
+- Streamlit Member 360 interface with dedicated document search, grounded assistant, and readiness status.
 - Strict formatting, linting, typing, unit, contract, integration, and end-to-end tests in CI.
 
 See [intent.md](intent.md) for scope and [the architecture](docs/architecture/high-level.md) for system boundaries.
@@ -67,12 +67,13 @@ Create and publish the demo data:
 uv run customer360 generate-data --members 100 --duplicates 10
 uv run customer360 run-pipeline
 uv run customer360 publish-serving
+make up-search
 make up-apps
 ```
 
-Open the API documentation at `http://localhost:8000/docs` and Streamlit at `http://localhost:8501`.
+Open the API documentation at `http://localhost:8000/docs` and Streamlit at `http://localhost:8501`. Document search is available in the **Document search** tab and through `GET /api/v1/documents/search?q=identity+resolution`.
 
-Start the optional OpenSearch and Ollama services with `make up-ai`. OpenSearch binds to `localhost:59200`; Ollama binds to `localhost:51434`.
+`make up-search` starts the OpenSearch vector index on `localhost:59200`. Start the optional Ollama runtime as well with `make up-ai`; it binds to `localhost:51434`.
 
 Stop local services with:
 
@@ -88,6 +89,7 @@ make lint         # Static checks
 make test         # Unit and contract tests
 make test-all     # All local test suites
 make compose-check
+make up-search    # PostgreSQL + OpenSearch document retrieval
 ```
 
 `run-pipeline` is idempotent by dataset ID. Use `--force` only when intentionally replaying the same generated release.

@@ -30,3 +30,34 @@ def test_assistant_endpoint_requires_configured_index() -> None:
         response = client.post("/api/v1/assistant", json={"question": "What is covered?"})
 
     assert response.status_code == 503
+
+
+def test_document_search_returns_ranked_evidence() -> None:
+    store = InMemoryVectorStore(HashEmbedder())
+    store.index(chunk_markdown(Path("tests/fixtures/documents/benefits.md")))
+    app = create_app(Settings(database_url="sqlite://"), document_store=store)
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/documents/search", params={"q": "annual deductible", "limit": 3}
+        )
+        health = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()
+    assert response.json()[0]["title"] == "Benefits"
+    assert response.json()[0]["section"]
+    assert response.json()[0]["excerpt"]
+    assert response.json()[0]["score"] > 0
+    assert health.json()["document_search"] == "ready"
+
+
+def test_document_search_requires_configured_index() -> None:
+    app = create_app(Settings(database_url="sqlite://"))
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/documents/search", params={"q": "deductible"})
+        health = client.get("/health")
+
+    assert response.status_code == 503
+    assert health.json()["document_search"] == "unavailable"

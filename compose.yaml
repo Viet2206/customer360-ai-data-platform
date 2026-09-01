@@ -59,6 +59,9 @@ services:
       dockerfile: infrastructure/docker/app/Dockerfile
     environment:
       CUSTOMER360_DATABASE_URL: postgresql+psycopg://customer360:customer360@postgres:5432/customer360
+      CUSTOMER360_OPENSEARCH_URL: http://opensearch:9200
+      CUSTOMER360_KNOWLEDGE_SEARCH_ENABLED: "true"
+      CUSTOMER360_KNOWLEDGE_DOCUMENTS_PATH: docs
     ports:
       - "8000:8000"
     depends_on:

@@ -7,15 +7,19 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Any
 
+import structlog
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from prometheus_client import make_asgi_app
 from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 
 from customer360 import __version__
-from customer360.assistant.service import GroundedAssistant
+from customer360.assistant.service import GroundedAssistant, SearchStore
 from customer360.common.config import Settings, get_settings
+from customer360.retrieval.core import HashEmbedder, OpenSearchVectorStore, load_markdown_chunks
 from customer360.serving.member360 import build_engine, get_member, list_members
+
+logger = structlog.get_logger(__name__)
 
 
 class AssistantRequest(BaseModel):
@@ -38,7 +42,9 @@ def _project_member(member: dict[str, Any], role: str) -> dict[str, Any]:
 
 
 def create_app(
-    settings: Settings | None = None, assistant: GroundedAssistant | None = None
+    settings: Settings | None = None,
+    assistant: GroundedAssistant | None = None,
+    document_store: SearchStore | None = None,
 ) -> FastAPI:
     """Create an application with an isolated database engine lifecycle."""
 
@@ -48,6 +54,37 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine = build_engine(app_settings.database_url)
         app.state.engine = engine
+        app.state.document_store = document_store
+        app.state.assistant = assistant
+        app.state.knowledge_error = None
+        if app.state.document_store is not None and app.state.assistant is None:
+            app.state.assistant = GroundedAssistant(
+                app.state.document_store,
+                minimum_score=app_settings.knowledge_minimum_score,
+            )
+        elif app_settings.knowledge_search_enabled and app.state.document_store is None:
+            try:
+                embedder = HashEmbedder(app_settings.knowledge_embedding_dimension)
+                store = OpenSearchVectorStore(
+                    app_settings.opensearch_url,
+                    app_settings.knowledge_index_name,
+                    embedder,
+                )
+                chunks = load_markdown_chunks(app_settings.knowledge_documents_path)
+                store.rebuild(chunks)
+                app.state.document_store = store
+                app.state.assistant = app.state.assistant or GroundedAssistant(
+                    store,
+                    minimum_score=app_settings.knowledge_minimum_score,
+                )
+                logger.info(
+                    "knowledge_index_ready",
+                    chunks=len(chunks),
+                    index=app_settings.knowledge_index_name,
+                )
+            except Exception as exc:  # keep the trusted member API available
+                app.state.knowledge_error = str(exc)
+                logger.warning("knowledge_index_unavailable", error=str(exc))
         yield
         engine.dispose()
 
@@ -60,8 +97,14 @@ def create_app(
     app.mount("/metrics", make_asgi_app())
 
     @app.get("/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok", "version": __version__}
+    def health(request: Request) -> dict[str, str]:
+        return {
+            "status": "ok",
+            "version": __version__,
+            "document_search": (
+                "ready" if request.app.state.document_store is not None else "unavailable"
+            ),
+        }
 
     @app.get("/api/v1/members")
     def members(
@@ -85,10 +128,34 @@ def create_app(
         return _project_member(result, role)
 
     @app.post("/api/v1/assistant")
-    def assistant_answer(payload: AssistantRequest) -> dict[str, Any]:
-        if assistant is None:
+    def assistant_answer(request: Request, payload: AssistantRequest) -> dict[str, Any]:
+        runtime_assistant: GroundedAssistant | None = request.app.state.assistant
+        if runtime_assistant is None:
             raise HTTPException(status_code=503, detail="Knowledge index is not configured")
-        return asdict(assistant.answer(payload.question))
+        return asdict(runtime_assistant.answer(payload.question))
+
+    @app.get("/api/v1/documents/search")
+    def search_documents(
+        request: Request,
+        q: str = Query(min_length=3, max_length=500),
+        limit: int = Query(5, ge=1, le=10),
+    ) -> list[dict[str, Any]]:
+        store: SearchStore | None = request.app.state.document_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Document search index is not configured")
+        return [
+            {
+                "chunk_id": hit.chunk.chunk_id,
+                "document_id": hit.chunk.document_id,
+                "title": hit.chunk.title,
+                "section": hit.chunk.section,
+                "excerpt": hit.chunk.text,
+                "source": hit.chunk.source,
+                "version": hit.chunk.version,
+                "score": hit.score,
+            }
+            for hit in store.search(q, limit=limit)
+        ]
 
     return app
 

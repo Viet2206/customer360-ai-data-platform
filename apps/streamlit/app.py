@@ -62,6 +62,25 @@ def _load_members(api_url: str, role: str) -> list[dict[str, Any]]:
     return list(response.json())
 
 
+@st.cache_data(ttl=10, show_spinner=False)
+def _load_health(api_url: str) -> dict[str, Any]:
+    response = httpx.get(f"{api_url}/health", timeout=10)
+    response.raise_for_status()
+    return dict(response.json())
+
+
+def _search_documents(api_url: str, query: str, limit: int = 6) -> dict[str, Any]:
+    response = httpx.get(
+        f"{api_url}/api/v1/documents/search",
+        params={"q": query, "limit": limit},
+        timeout=30,
+    )
+    if response.status_code == 503:
+        return {"unavailable": True, "results": []}
+    response.raise_for_status()
+    return {"results": list(response.json())}
+
+
 def _ask_assistant(api_url: str, question: str) -> dict[str, Any]:
     response = httpx.post(f"{api_url}/api/v1/assistant", json={"question": question}, timeout=30)
     if response.status_code == 503:
@@ -144,6 +163,7 @@ st.markdown(
       border-radius:10px; background:rgba(255,255,255,.04);
     }
     .status-dot { width:7px; height:7px; border-radius:50%; background:#4fd1a5; box-shadow:0 0 0 4px rgba(79,209,165,.12); }
+    .status-dot.offline { background:#f0ad4e; box-shadow:0 0 0 4px rgba(240,173,78,.12); }
     .sidebar-foot { color:#7fa8c8; font-size:.68rem; line-height:1.55; margin-top:1.5rem; }
 
     .workspace-header { display:flex; justify-content:space-between; align-items:flex-start; gap:2rem; margin:.2rem 0 1.35rem; }
@@ -219,6 +239,20 @@ st.markdown(
     .answer-card { background:#fff; border:1px solid #cbe4d9; border-left:4px solid var(--green); border-radius:13px; padding:1rem 1.1rem; color:#243b53; font-size:.82rem; line-height:1.65; margin-top:.8rem; }
     .offline-card { background:#fff9ed; border:1px solid #efd6a8; border-left:4px solid var(--amber); border-radius:13px; padding:1rem 1.1rem; color:#7a4c14; font-size:.79rem; line-height:1.55; margin-top:.8rem; }
 
+    .search-hero { display:flex; justify-content:space-between; align-items:center; gap:1.2rem; background:linear-gradient(120deg,#edf6ff,#eefaf7); border:1px solid #d3e6f1; border-radius:16px; padding:1.15rem 1.3rem; margin-bottom:.8rem; }
+    .search-title { color:var(--ink); font-weight:760; font-size:1rem; }
+    .search-copy { color:#627d98; font-size:.76rem; line-height:1.55; margin:.42rem 0 0; max-width:760px; }
+    .search-mode { flex:0 0 auto; color:#155d96; background:#fff; border:1px solid #c9e1f5; border-radius:999px; padding:.42rem .68rem; font-size:.64rem; font-weight:760; }
+    .results-header { display:flex; justify-content:space-between; align-items:center; color:#627d98; font-size:.72rem; margin:1rem .15rem .55rem; }
+    .results-header strong { color:var(--ink); font-size:.82rem; }
+    .result-card { background:#fff; border:1px solid #dde7ef; border-radius:14px; padding:1rem 1.1rem; margin-bottom:.65rem; box-shadow:0 4px 13px rgba(31,59,88,.04); }
+    .result-head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; }
+    .result-title { color:var(--ink); font-size:.86rem; font-weight:760; }
+    .result-section { color:var(--blue); font-size:.68rem; font-weight:700; margin-top:.18rem; }
+    .score-pill { flex:0 0 auto; color:#116a4c; background:#e5f5ee; border:1px solid #c8e8da; border-radius:999px; padding:.3rem .5rem; font-size:.61rem; font-weight:760; }
+    .result-excerpt { color:#486581; font-size:.76rem; line-height:1.55; margin:.7rem 0; }
+    .result-meta { color:#829ab1; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.61rem; overflow-wrap:anywhere; }
+
     .journey { display:grid; grid-template-columns:repeat(4,1fr); gap:.55rem; margin:.65rem 0 1rem; }
     .journey-step { position:relative; background:#fff; border:1px solid #e1e8f0; border-radius:13px; padding:.9rem; min-height:94px; }
     .journey-num { color:var(--blue); font-size:.61rem; font-weight:800; letter-spacing:.1em; }
@@ -275,6 +309,7 @@ role = "analyst" if profile == "Member services" else "analytics"
 
 try:
     members = _load_members(API_URL, role)
+    platform_health = _load_health(API_URL)
 except (httpx.HTTPError, ValueError) as exc:
     st.markdown(
         '<div class="workspace-header"><div><div class="eyebrow">Platform status</div>'
@@ -291,14 +326,17 @@ if not members:
     st.stop()
 
 selected = st.sidebar.selectbox("Member record", members, format_func=_member_label)
+search_ready = platform_health.get("document_search") == "ready"
+search_status_class = "" if search_ready else " offline"
 
 st.sidebar.markdown('<div class="sidebar-section">Platform status</div>', unsafe_allow_html=True)
 st.sidebar.markdown(
-    """
+    f"""
     <div class="status-stack">
       <div class="status-row"><span>Trusted API</span><span class="status-dot"></span></div>
       <div class="status-row"><span>Member projection</span><span class="status-dot"></span></div>
       <div class="status-row"><span>Gold lineage</span><span class="status-dot"></span></div>
+      <div class="status-row"><span>Knowledge index</span><span class="status-dot{search_status_class}"></span></div>
     </div>
     <div class="sidebar-foot">Synthetic data only<br/>Local portfolio environment · v0.1.0</div>
     """,
@@ -314,6 +352,11 @@ plan_paid = max(allowed - member_responsibility, 0)
 plan_percent = (plan_paid / allowed * 100) if allowed else 0
 member_percent = 100 - plan_percent if allowed else 0
 masked = role == "analytics"
+search_badge = (
+    '<span class="soft-badge green">● Document search ready</span>'
+    if search_ready
+    else '<span class="soft-badge amber">● Document search offline</span>'
+)
 
 st.markdown(
     f"""
@@ -326,6 +369,7 @@ st.markdown(
       <div class="header-badges">
         <span class="soft-badge blue">◆ Gold projection</span>
         <span class="soft-badge green">● API connected</span>
+        {search_badge}
         <span class="soft-badge amber">Synthetic data</span>
       </div>
     </div>
@@ -368,8 +412,14 @@ with metric_columns[3]:
         "#c17618",
     )
 
-overview_tab, coverage_tab, assistant_tab, lineage_tab = st.tabs(
-    ["Overview", "Coverage & claims", "AI assistant", "Lineage & governance"]
+overview_tab, coverage_tab, search_tab, assistant_tab, lineage_tab = st.tabs(
+    [
+        "Overview",
+        "Coverage & claims",
+        "Document search",
+        "AI assistant",
+        "Lineage & governance",
+    ]
 )
 
 with overview_tab:
@@ -428,6 +478,70 @@ with coverage_tab:
         unsafe_allow_html=True,
     )
 
+with search_tab:
+    st.markdown(
+        """
+        <div class="search-hero">
+          <div><div class="search-title">Search the governed knowledge corpus</div>
+          <p class="search-copy">Find architecture, insurance-domain, quality, and operating guidance. Results combine keyword relevance with vector similarity and preserve document provenance.</p></div>
+          <span class="search-mode">BM25 + VECTOR · RRF</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.form("document_search", clear_on_submit=False):
+        search_query = st.text_input(
+            "Search documents",
+            placeholder="Example: identity resolution, deductible, or quarantine rules",
+        )
+        search_submitted = st.form_submit_button("Search knowledge index")
+
+    if search_submitted:
+        if len(search_query.strip()) < 3:
+            st.warning("Enter a search query with at least three characters.")
+        else:
+            try:
+                with st.spinner("Ranking trusted documents…"):
+                    st.session_state["document_search_result"] = _search_documents(
+                        API_URL, search_query
+                    )
+                    st.session_state["document_search_query"] = search_query
+            except httpx.HTTPError as exc:
+                st.session_state["document_search_result"] = {"error": str(exc)}
+
+    search_result = st.session_state.get("document_search_result")
+    if search_result:
+        if search_result.get("unavailable"):
+            st.markdown(
+                """
+                <div class="offline-card"><strong>Document search is not available.</strong><br/>
+                Start OpenSearch with <code>make up-search</code>, then restart the app runtime. Member serving remains available independently.</div>
+                """,
+                unsafe_allow_html=True,
+            )
+        elif search_result.get("error"):
+            st.error(f"Document search failed: {search_result['error']}")
+        else:
+            results = list(search_result.get("results") or [])
+            query_label = _safe(st.session_state.get("document_search_query", ""))
+            st.markdown(
+                f'<div class="results-header"><strong>{len(results)} ranked results</strong><span>Query · {query_label}</span></div>',
+                unsafe_allow_html=True,
+            )
+            if not results:
+                st.info("No trusted document chunks matched this query.")
+            for result in results:
+                st.markdown(
+                    f"""
+                    <article class="result-card">
+                      <div class="result-head"><div><div class="result-title">{_safe(result.get("title"))}</div><div class="result-section">{_safe(result.get("section"))}</div></div><span class="score-pill">RRF {float(result.get("score") or 0):.4f}</span></div>
+                      <div class="result-excerpt">{_safe(result.get("excerpt"))}</div>
+                      <div class="result-meta">{_safe(result.get("source"))} · version {_safe(result.get("version"))} · {_safe(result.get("chunk_id"))}</div>
+                    </article>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
 with assistant_tab:
     st.markdown(
         """
@@ -461,7 +575,7 @@ with assistant_tab:
             st.markdown(
                 """
                 <div class="offline-card"><strong>Knowledge index not configured for this runtime.</strong><br/>
-                Start the optional AI profile and publish the document index before querying. The member-serving experience remains available.</div>
+                Start OpenSearch with <code>make up-search</code>, then restart the app runtime. The member-serving experience remains available.</div>
                 """,
                 unsafe_allow_html=True,
             )
