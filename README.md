@@ -17,6 +17,16 @@ The project uses synthetic data only. It is not a production system, does not pr
 
 See [intent.md](intent.md) for scope and [the architecture](docs/architecture/high-level.md) for system boundaries.
 
+## Verified local demo
+
+The Member 360 interface reads the trusted PostgreSQL serving projection through FastAPI. The example below contains synthetic data only.
+
+![Member 360 interface](docs/assets/screenshots/member-360.jpg)
+
+The API exposes health, member, and grounded-assistant operations through a versioned boundary.
+
+![Customer 360 API documentation](docs/assets/screenshots/api-docs.jpg)
+
 ## Prerequisites
 
 - Docker Desktop with Docker Compose
