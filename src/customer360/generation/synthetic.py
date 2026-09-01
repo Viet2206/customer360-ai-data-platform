@@ -135,7 +135,12 @@ def _claim_rows(seed: int, member_count: int, rng: random.Random) -> list[dict[s
 
 
 def generate_dataset(
-    output_dir: Path, *, seed: int = 20250901, member_count: int = 12
+    output_dir: Path,
+    *,
+    seed: int = 20250901,
+    member_count: int = 12,
+    duplicate_count: int = 0,
+    inject_defects: bool = False,
 ) -> GeneratedDataset:
     """Create deterministic source CSVs plus a checksummed release manifest."""
 
@@ -143,12 +148,41 @@ def generate_dataset(
         raise ValueError("member_count must be positive")
     output_dir.mkdir(parents=True, exist_ok=True)
     rng = random.Random(seed)
+    members = _member_rows(seed, member_count, rng)
+    identity_truth: list[dict[str, Any]] = []
+    for index in range(min(duplicate_count, member_count)):
+        original = members[index]
+        duplicate = dict(original)
+        duplicate["source_member_id"] = f"CRM-{index + 1:05d}"
+        duplicate["first_name"] = f"{str(original['first_name'])[:-1]}a"
+        duplicate["email"] = f"alias.{original['email']}"
+        duplicate["source_updated_at"] = "2025-03-01"
+        members.append(duplicate)
+        identity_truth.append(
+            {
+                "duplicate_source_member_id": duplicate["source_member_id"],
+                "canonical_source_member_id": original["source_member_id"],
+            }
+        )
+    claims = _claim_rows(seed, member_count, rng)
+    if inject_defects:
+        members[0]["email"] = "invalid-email"
+        claims.append(
+            {
+                **claims[0],
+                "claim_id": _stable_id("orphan-claim", seed, 0),
+                "source_member_id": "MISSING-MEMBER",
+            }
+        )
+        claims[1]["plan_paid_amount"] = "0.00"
     datasets = {
-        "members": _member_rows(seed, member_count, rng),
+        "members": members,
         "plans": _plan_rows(),
         "coverage": _coverage_rows(member_count),
-        "claims": _claim_rows(seed, member_count, rng),
+        "claims": claims,
     }
+    if identity_truth:
+        datasets["identity_ground_truth"] = identity_truth
     files: list[dict[str, Any]] = []
     for name, rows in datasets.items():
         path = output_dir / f"{name}.csv"
@@ -167,6 +201,8 @@ def generate_dataset(
         "generator": "customer360.synthetic.v1",
         "seed": seed,
         "member_count": member_count,
+        "duplicate_count": duplicate_count,
+        "inject_defects": inject_defects,
         "as_of_date": "2025-06-30",
         "files": files,
     }

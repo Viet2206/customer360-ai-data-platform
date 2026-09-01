@@ -13,16 +13,8 @@ __pycache__/
 build/
 dist/
 
-# Generated datasets and local lakehouse state
-data/raw/
-data/bronze/
-data/silver/
-data/gold/
-data/quarantine/
-data/generated/
-data/audit/
-data/opensearch/
-data/postgres/
+# Generated datasets and local lakehouse state. Commit fixtures elsewhere under tests/fixtures.
+data/
 
 # Runtime artifacts
 logs/

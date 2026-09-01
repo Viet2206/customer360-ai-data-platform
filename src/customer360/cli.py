@@ -40,10 +40,18 @@ def generate_data(
     output_dir: Annotated[Path, typer.Option()] = Path("data/generated/demo"),
     seed: Annotated[int, typer.Option()] = 20250901,
     members: Annotated[int, typer.Option(min=1)] = 12,
+    duplicates: Annotated[int, typer.Option(min=0)] = 0,
+    inject_defects: Annotated[bool, typer.Option()] = False,
 ) -> None:
     """Generate a deterministic local payer dataset."""
 
-    dataset = generate_dataset(output_dir, seed=seed, member_count=members)
+    dataset = generate_dataset(
+        output_dir,
+        seed=seed,
+        member_count=members,
+        duplicate_count=duplicates,
+        inject_defects=inject_defects,
+    )
     typer.echo(f"manifest={dataset.manifest_path} counts={dataset.counts}")
 
 

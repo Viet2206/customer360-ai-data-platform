@@ -8,10 +8,13 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
-from uuid import NAMESPACE_URL, uuid4, uuid5
+from uuid import uuid4
 
 import pyarrow as pa  # type: ignore[import-untyped]
 from deltalake import DeltaTable, write_deltalake
+
+from customer360.identity.resolution import evaluate_identity, resolve_members
+from customer360.quality.validation import validate_domains
 
 SOURCE_NAMES = ("members", "plans", "coverage", "claims")
 
@@ -53,7 +56,7 @@ def _bronze(source_dir: Path, data_root: Path, run_id: str, ingested_at: str) ->
     return counts
 
 
-def _silver(data_root: Path) -> dict[str, int]:
+def _silver(data_root: Path, run_id: str) -> dict[str, int]:
     members = read_delta(data_root / "bronze" / "members")
     plans = read_delta(data_root / "bronze" / "plans")
     coverage = read_delta(data_root / "bronze" / "coverage")
@@ -115,15 +118,19 @@ def _silver(data_root: Path) -> dict[str, int]:
         }
         for row in claims
     ]
-    outputs = {
+    outputs: dict[str, list[dict[str, Any]]] = {
         "members": member_rows,
         "plans": plan_rows,
         "coverage": coverage_rows,
         "claims": claim_rows,
     }
-    for name, rows in outputs.items():
+    quality = validate_domains(outputs, run_id)
+    for name, rows in quality.valid.items():
         _write_delta(data_root / "silver" / name, rows)
-    return {name: len(rows) for name, rows in outputs.items()}
+    _write_delta(data_root / "quality" / "dq_results", quality.checks)
+    if quality.issues:
+        _write_delta(data_root / "quarantine" / "records", quality.issues)
+    return {name: len(rows) for name, rows in quality.valid.items()}
 
 
 def _gold(data_root: Path, run_id: str) -> dict[str, int]:
@@ -132,32 +139,31 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
     coverage = read_delta(data_root / "silver" / "coverage")
     claims = read_delta(data_root / "silver" / "claims")
 
-    member_keys = {
-        row["source_member_id"]: str(
-            uuid5(NAMESPACE_URL, f"customer360:member:{row['source_member_id']}")
-        )
-        for row in sorted(members, key=lambda item: item["source_member_id"])
-    }
-    dim_member = [{"member_id": member_keys[row["source_member_id"]], **row} for row in members]
+    identity = resolve_members(members)
+    member_keys = identity.source_to_member
+    dim_member = identity.members
     dim_plan = list(plans)
     fact_coverage = [{"member_id": member_keys[row["source_member_id"]], **row} for row in coverage]
     fact_claim = [{"member_id": member_keys[row["source_member_id"]], **row} for row in claims]
 
     plan_by_id = {row["plan_id"]: row for row in plans}
-    coverage_by_member = {row["source_member_id"]: row for row in coverage}
+    coverage_by_member = {member_keys[row["source_member_id"]]: row for row in coverage}
     claims_by_member: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in claims:
-        claims_by_member[row["source_member_id"]].append(row)
+        claims_by_member[member_keys[row["source_member_id"]]].append(row)
 
     member_360: list[dict[str, Any]] = []
-    for member in members:
+    for member in dim_member:
         source_id = member["source_member_id"]
-        member_claims = claims_by_member[source_id]
-        member_coverage = coverage_by_member[source_id]
+        member_id = member["member_id"]
+        member_claims = claims_by_member[member_id]
+        member_coverage = coverage_by_member.get(member_id)
+        if member_coverage is None:
+            continue
         plan = plan_by_id[member_coverage["plan_id"]]
         member_360.append(
             {
-                "member_id": member_keys[source_id],
+                "member_id": member_id,
                 "source_member_id": source_id,
                 "full_name": member["full_name"],
                 "date_of_birth": member["date_of_birth"],
@@ -189,6 +195,8 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
         "dim_plan": dim_plan,
         "fact_coverage": fact_coverage,
         "fact_claim": fact_claim,
+        "member_identifier_xref": identity.xref,
+        "identity_match_decision": identity.decisions,
         "member_360": member_360,
     }
     for name, rows in outputs.items():
@@ -203,13 +211,25 @@ def run_pipeline(source_dir: Path, data_root: Path) -> Path:
     run_id = str(uuid4())
     ingested_at = datetime.now(UTC).isoformat()
     bronze_counts = _bronze(source_dir, data_root, run_id, ingested_at)
-    expected = {item["name"]: item["record_count"] for item in source_manifest["files"]}
+    expected = {
+        item["name"]: item["record_count"]
+        for item in source_manifest["files"]
+        if item["name"] in SOURCE_NAMES
+    }
     if bronze_counts != expected:
         raise ValueError(
             f"Bronze reconciliation failed: expected={expected}, actual={bronze_counts}"
         )
-    silver_counts = _silver(data_root)
+    silver_counts = _silver(data_root, run_id)
     gold_counts = _gold(data_root, run_id)
+    truth_path = source_dir / "identity_ground_truth.csv"
+    if truth_path.exists():
+        evaluation = evaluate_identity(
+            read_delta(data_root / "gold" / "member_identifier_xref"), _read_csv(truth_path)
+        )
+        _write_delta(
+            data_root / "quality" / "identity_evaluation", [{"run_id": run_id, **evaluation}]
+        )
     run_manifest = {
         "run_id": run_id,
         "dataset_id": source_manifest["dataset_id"],
