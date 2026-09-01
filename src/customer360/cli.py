@@ -1,11 +1,14 @@
 """Developer command-line interface."""
 
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
 from customer360 import __version__
 from customer360.common.config import get_settings
+from customer360.generation.synthetic import generate_dataset
+from customer360.pipelines.medallion import run_pipeline
 
 app = typer.Typer(no_args_is_help=True, help="Customer 360 platform developer commands.")
 
@@ -29,6 +32,29 @@ def smoke() -> None:
         f"customer360={__version__} environment={settings.environment} "
         f"data_root={settings.data_root} status=ok"
     )
+
+
+@app.command("generate-data")
+def generate_data(
+    output_dir: Annotated[Path, typer.Option()] = Path("data/generated/demo"),
+    seed: Annotated[int, typer.Option()] = 20250901,
+    members: Annotated[int, typer.Option(min=1)] = 12,
+) -> None:
+    """Generate a deterministic local payer dataset."""
+
+    dataset = generate_dataset(output_dir, seed=seed, member_count=members)
+    typer.echo(f"manifest={dataset.manifest_path} counts={dataset.counts}")
+
+
+@app.command("run-pipeline")
+def pipeline(
+    source_dir: Annotated[Path, typer.Option()] = Path("data/generated/demo"),
+    data_root: Annotated[Path, typer.Option()] = Path("data"),
+) -> None:
+    """Build the Bronze, Silver, and Gold Delta tables."""
+
+    manifest = run_pipeline(source_dir, data_root)
+    typer.echo(f"pipeline_manifest={manifest} status=ok")
 
 
 if __name__ == "__main__":

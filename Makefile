@@ -17,8 +17,8 @@ lint: ## Run formatting, lint, and type checks
 	uv run ruff check src tests
 	uv run mypy src
 
-test: ## Run fast unit and contract tests
-	uv run pytest tests/unit tests/contract
+test: ## Run fast unit, contract, and local integration tests
+	uv run pytest tests/unit tests/contract tests/integration
 
 test-all: ## Run all local test suites
 	uv run pytest
@@ -40,4 +40,3 @@ compose-check: ## Validate the Compose configuration
 
 clean: ## Remove disposable local Python artifacts
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage coverage.xml
-

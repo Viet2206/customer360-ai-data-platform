@@ -20,6 +20,7 @@ data/silver/
 data/gold/
 data/quarantine/
 data/generated/
+data/audit/
 data/opensearch/
 data/postgres/
 
@@ -28,4 +29,3 @@ logs/
 tmp/
 .airflow/
 ollama_models/
-

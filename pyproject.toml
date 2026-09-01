@@ -11,9 +11,13 @@ requires-python = ">=3.11,<3.13"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Viet", email = "ngoquocviet2206@gmail.com" }]
 dependencies = [
+  "deltalake>=1.2,<2",
+  "pyarrow>=19,<23",
   "pydantic>=2.10,<3",
   "pydantic-settings>=2.7,<3",
+  "psycopg[binary]>=3.2,<4",
   "pyyaml>=6.0.2,<7",
+  "sqlalchemy>=2.0,<3",
   "structlog>=24.4,<26",
   "typer>=0.15,<1",
 ]
@@ -62,4 +66,3 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 python_version = "3.11"
 strict = true
 packages = ["customer360"]
-
