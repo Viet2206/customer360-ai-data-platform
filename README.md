@@ -4,6 +4,10 @@ A reproducible US health-insurance Member 360 platform for learning and demonstr
 
 The project uses synthetic data only. It is not a production system, does not process real protected health information, and does not claim HIPAA compliance.
 
+## Architecture at a glance
+
+![Member 360 AI Data Platform architecture](docs/assets/diagrams/platform-architecture.svg)
+
 ## Implemented capabilities
 
 - Deterministic payer-source generation with checksums and labelled duplicate ground truth.
@@ -16,6 +20,20 @@ The project uses synthetic data only. It is not a production system, does not pr
 - Strict formatting, linting, typing, unit, contract, integration, and end-to-end tests in CI.
 
 See [intent.md](intent.md) for scope and [the architecture](docs/architecture/high-level.md) for system boundaries.
+
+## Data product and AI flows
+
+The governed data product keeps the golden member, business facts, source crosswalks, match evidence, and pipeline lineage connected.
+
+![Insurance Member 360 data product model](docs/assets/diagrams/member-360-data-model.svg)
+
+The knowledge path combines lexical and vector retrieval while preserving evidence metadata and refusing unsupported answers.
+
+<p align="center">
+  <img src="docs/assets/diagrams/hybrid-retrieval-flow.svg" width="760" alt="Grounded hybrid retrieval flow" />
+</p>
+
+See the [visual architecture guide](docs/architecture/visual-guide.md) for the design rules represented by each diagram.
 
 ## Verified local demo
 

@@ -2,6 +2,8 @@
 
 The platform separates systems of record from rebuildable serving projections.
 
+![Member 360 AI Data Platform architecture](../assets/diagrams/platform-architecture.svg)
+
 ```text
 Generated/public sources
         |
@@ -22,3 +24,4 @@ Generated/public sources
 - PostgreSQL and OpenSearch can be rebuilt; they never contain the only trusted copy.
 - FastAPI applies persona projection before returning member data.
 
+See the [visual architecture guide](visual-guide.md) for the governed data-product and hybrid-retrieval views.

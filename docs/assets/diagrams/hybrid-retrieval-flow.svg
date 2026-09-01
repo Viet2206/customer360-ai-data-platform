@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600" role="img" aria-labelledby="title desc">
+  <title id="title">Grounded hybrid retrieval architecture</title>
+  <desc id="desc">Document indexing and question answering flow using stable chunks, Ollama embeddings, OpenSearch BM25 and k-NN retrieval, reciprocal-rank fusion, citations, and abstention.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbfcfe"/><stop offset="1" stop-color="#eef4fa"/></linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10243e"/><stop offset="1" stop-color="#173b62"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#16304f" flood-opacity="0.13"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#285b8f"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#16845f"/></marker>
+    <style>
+      .title{font:700 39px Inter,Arial,sans-serif;fill:#10243e}.subtitle{font:400 18px Inter,Arial,sans-serif;fill:#58718d}.lane{font:700 16px Inter,Arial,sans-serif;letter-spacing:1.5px}.card-title{font:700 20px Inter,Arial,sans-serif;fill:#10243e}.body{font:400 14px Inter,Arial,sans-serif;fill:#4b6480}.small{font:400 12px Inter,Arial,sans-serif;fill:#68809a}.label{font:700 11px Inter,Arial,sans-serif;letter-spacing:.7px}.white-title{font:700 22px Inter,Arial,sans-serif;fill:#fff}.white-body{font:400 14px Inter,Arial,sans-serif;fill:#dcecff}.code{font:400 12px ui-monospace,SFMono-Regular,Consolas,monospace;fill:#314c68}.step{font:700 17px Inter,Arial,sans-serif;fill:#fff}.edge{fill:none;stroke:#285b8f;stroke-width:3;marker-end:url(#arrow)}.edge-green{fill:none;stroke:#16845f;stroke-width:3;marker-end:url(#arrow-green)}.dash{fill:none;stroke:#7289a4;stroke-width:2.5;stroke-dasharray:8 7;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="1600" fill="url(#bg)"/>
+  <text x="600" y="60" text-anchor="middle" class="title">GROUNDED HYBRID RETRIEVAL</text>
+  <text x="600" y="93" text-anchor="middle" class="subtitle">Versioned evidence from trusted documents to a cited or explicitly abstained answer</text>
+
+  <rect x="50" y="132" width="1100" height="48" rx="14" fill="#e8f2fc"/>
+  <text x="80" y="163" class="lane" fill="#2368ad">A · REBUILDABLE INDEXING PIPELINE</text>
+
+  <g filter="url(#shadow)">
+    <rect x="75" y="220" width="260" height="160" rx="18" fill="#fff" stroke="#b7d7ef"/>
+    <circle cx="112" cy="261" r="21" fill="#2c78c4"/><text x="112" y="267" text-anchor="middle" class="step">1</text>
+    <text x="148" y="258" class="card-title">Trusted documents</text>
+    <text x="100" y="302" class="body">Markdown policy + runbook content</text><text x="100" y="331" class="body">Source path and version retained</text><text x="100" y="359" class="small">Delta manifest remains authoritative</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="470" y="220" width="260" height="160" rx="18" fill="#fff" stroke="#b8e0d0"/>
+    <circle cx="507" cy="261" r="21" fill="#1b9b70"/><text x="507" y="267" text-anchor="middle" class="step">2</text>
+    <text x="543" y="258" class="card-title">Stable chunking</text>
+    <text x="495" y="302" class="body">Heading-aware word windows</text><text x="495" y="331" class="body">SHA-256 stable chunk IDs</text><text x="495" y="359" class="small">Title · section · source · version</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="865" y="220" width="260" height="160" rx="18" fill="#fff" stroke="#d6c8ef"/>
+    <circle cx="902" cy="261" r="21" fill="#7757ba"/><text x="902" y="267" text-anchor="middle" class="step">3</text>
+    <text x="938" y="258" class="card-title">Ollama embeddings</text>
+    <text x="890" y="302" class="body">Local model adapter</text><text x="890" y="331" class="body">Dimension contract enforced</text><text x="890" y="359" class="small">Deterministic test adapter available</text>
+  </g>
+  <path d="M335 300H458" class="edge"/><path d="M730 300H853" class="edge-green"/>
+
+  <g filter="url(#shadow)">
+    <rect x="250" y="430" width="700" height="176" rx="22" fill="url(#navy)"/>
+    <text x="600" y="478" text-anchor="middle" class="white-title">OPENSEARCH KNOWLEDGE INDEX</text>
+    <line x1="285" y1="500" x2="915" y2="500" stroke="#315579"/>
+    <text x="315" y="541" class="white-body">Lexical field</text><text x="315" y="571" class="white-body">Vector field</text>
+    <text x="490" y="541" class="code" fill="#8ed0ff">text · BM25</text><text x="490" y="571" class="code" fill="#8ed0ff">embedding · knn_vector</text>
+    <text x="700" y="541" class="white-body">Metadata</text><text x="700" y="571" class="small" fill="#c9ddf2">document_id · version · section</text>
+  </g>
+  <path d="M995 380V407H600V418" class="edge-green"/>
+
+  <rect x="50" y="657" width="1100" height="48" rx="14" fill="#f0eafb"/>
+  <text x="80" y="688" class="lane" fill="#6847ad">B · QUESTION-TO-EVIDENCE PIPELINE</text>
+
+  <g filter="url(#shadow)">
+    <rect x="346" y="744" width="508" height="123" rx="20" fill="#fff" stroke="#d6c8ef"/>
+    <circle cx="394" cy="805" r="27" fill="#7757ba"/><path d="M383 807c0-8 5-13 11-13s11 5 11 13M377 827c4-10 11-15 17-15s13 5 17 15" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <text x="445" y="793" class="card-title">User question</text><text x="445" y="829" class="body">“What evidence explains this member’s deductible?”</text>
+  </g>
+  <path d="M600 867V911" class="edge"/>
+
+  <g filter="url(#shadow)">
+    <rect x="90" y="925" width="430" height="166" rx="20" fill="#fff" stroke="#b7d7ef"/>
+    <rect x="90" y="925" width="430" height="11" rx="6" fill="#2c78c4"/>
+    <circle cx="132" cy="977" r="22" fill="#e5f1fb"/><text x="132" y="983" text-anchor="middle" class="label" fill="#2368ad">A</text>
+    <text x="173" y="973" class="card-title">BM25 lexical search</text>
+    <text x="116" y="1016" class="body">Exact insurance terminology</text><text x="116" y="1046" class="body">Ranked text matches</text><text x="116" y="1074" class="small">Candidate pool = 2 × requested limit</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="680" y="925" width="430" height="166" rx="20" fill="#fff" stroke="#b8e0d0"/>
+    <rect x="680" y="925" width="430" height="11" rx="6" fill="#1b9b70"/>
+    <circle cx="722" cy="977" r="22" fill="#e4f7ef"/><text x="722" y="983" text-anchor="middle" class="label" fill="#137654">B</text>
+    <text x="763" y="973" class="card-title">k-NN semantic search</text>
+    <text x="706" y="1016" class="body">Question embedded with same model</text><text x="706" y="1046" class="body">Nearest evidence vectors</text><text x="706" y="1074" class="small">Meaning-aware candidate ranking</text>
+  </g>
+  <path d="M570 867V896H305V913" class="edge"/><path d="M630 867V896H895V913" class="edge-green"/>
+  <path d="M305 1091V1141H520" class="edge"/><path d="M895 1091V1141H680" class="edge-green"/>
+
+  <g filter="url(#shadow)">
+    <rect x="350" y="1124" width="500" height="168" rx="22" fill="#fff" stroke="#ecd1a6"/>
+    <rect x="350" y="1124" width="500" height="11" rx="6" fill="#d18a2e"/>
+    <circle cx="400" cy="1181" r="24" fill="#fff1df"/><text x="400" y="1188" text-anchor="middle" class="step" fill="#9b5d18">4</text>
+    <text x="448" y="1176" class="card-title">Reciprocal-rank fusion</text>
+    <text x="382" y="1220" class="body">Combines lexical and semantic rank positions</text><text x="382" y="1251" class="code">score(chunk) = Σ 1 / (60 + rank)</text><text x="382" y="1277" class="small">De-duplicates by stable chunk ID</text>
+  </g>
+  <path d="M600 1292V1330" class="edge"/>
+
+  <g filter="url(#shadow)">
+    <rect x="150" y="1343" width="410" height="153" rx="20" fill="#fff" stroke="#b8e0d0"/>
+    <rect x="150" y="1343" width="410" height="11" rx="6" fill="#1b9b70"/>
+    <text x="182" y="1395" class="card-title">Grounded response</text>
+    <text x="182" y="1432" class="body">Evidence text + citations</text><text x="182" y="1462" class="small">chunk ID · title · section · source · version</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="640" y="1343" width="410" height="153" rx="20" fill="#fff" stroke="#efb9b9"/>
+    <rect x="640" y="1343" width="410" height="11" rx="6" fill="#c95252"/>
+    <text x="672" y="1395" class="card-title">Explicit abstention</text>
+    <text x="672" y="1432" class="body">No result above minimum score</text><text x="672" y="1462" class="small">No unsupported answer is generated</text>
+  </g>
+  <path d="M600 1330H355V1331" class="edge-green"/><path d="M600 1330H845V1331" class="dash"/>
+
+  <rect x="50" y="1530" width="1100" height="42" rx="14" fill="#10243e"/>
+  <text x="600" y="1557" text-anchor="middle" class="white-body">The vector database is an index, not a source of truth: every hit remains traceable to versioned evidence.</text>
+</svg>

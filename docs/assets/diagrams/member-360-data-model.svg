@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050" role="img" aria-labelledby="title desc">
+  <title id="title">Insurance Member 360 data product model</title>
+  <desc id="desc">Canonical Member 360 model connecting member identity, plan, coverage, claim facts, source crosswalks, match decisions, data quality, and pipeline lineage.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbfcfe"/><stop offset="1" stop-color="#edf3f9"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10243e"/><stop offset="1" stop-color="#173b62"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#16304f" flood-opacity="0.14"/></filter>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2874ba"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#16845f"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7252b2"/></marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#b26d18"/></marker>
+    <style>
+      .title{font:700 42px Inter,Arial,sans-serif;fill:#10243e}.subtitle{font:400 19px Inter,Arial,sans-serif;fill:#57708d}.card-title{font:700 21px Inter,Arial,sans-serif;fill:#10243e}.body{font:400 15px Inter,Arial,sans-serif;fill:#4b6480}.small{font:400 13px Inter,Arial,sans-serif;fill:#68809a}.label{font:700 12px Inter,Arial,sans-serif;letter-spacing:.7px}.white-title{font:700 27px Inter,Arial,sans-serif;fill:#fff}.white-body{font:400 15px Inter,Arial,sans-serif;fill:#dcecff}.field{font:600 14px ui-monospace,SFMono-Regular,Consolas,monospace;fill:#dcecff}.table-head{font:700 13px Inter,Arial,sans-serif;fill:#8ed0ff}.table-row{font:400 13px ui-monospace,SFMono-Regular,Consolas,monospace;fill:#e9f3ff}.edge-blue{fill:none;stroke:#2874ba;stroke-width:3;marker-end:url(#arrow-blue)}.edge-green{fill:none;stroke:#16845f;stroke-width:3;marker-end:url(#arrow-green)}.edge-purple{fill:none;stroke:#7252b2;stroke-width:3;marker-end:url(#arrow-purple)}.edge-amber{fill:none;stroke:#b26d18;stroke-width:3;marker-end:url(#arrow-amber)}
+    </style>
+  </defs>
+  <rect width="1600" height="1050" fill="url(#bg)"/>
+  <text x="800" y="62" text-anchor="middle" class="title">INSURANCE MEMBER 360 DATA PRODUCT MODEL</text>
+  <text x="800" y="96" text-anchor="middle" class="subtitle">Canonical identity joins eligibility, benefit, and financial context with inspectable lineage</text>
+
+  <g filter="url(#shadow)">
+    <rect x="630" y="286" width="340" height="348" rx="24" fill="url(#core)"/>
+    <rect x="630" y="286" width="340" height="13" rx="7" fill="#e0ad40"/>
+    <circle cx="800" cy="348" r="31" fill="#294e75"/><path d="M786 350c0-9 6-16 14-16s14 7 14 16M778 373c5-13 14-19 22-19s17 6 22 19" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <text x="800" y="419" text-anchor="middle" class="white-title">GOLD MEMBER_360</text>
+    <text x="666" y="459" class="field">member_id</text><text x="666" y="489" class="field">source_member_id</text><text x="666" y="519" class="field">coverage_status</text><text x="666" y="549" class="field">plan_name</text><text x="666" y="579" class="field">claim_count + totals</text><text x="666" y="609" class="field">gold_run_id</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="74" y="165" width="330" height="205" rx="19" fill="#fff" stroke="#b7d7ef"/>
+    <rect x="74" y="165" width="330" height="12" rx="6" fill="#2c78c4"/>
+    <circle cx="119" cy="224" r="24" fill="#e5f1fb"/><text x="119" y="231" text-anchor="middle" class="label" fill="#2368ad">M</text>
+    <text x="158" y="220" class="card-title">DIM_MEMBER</text>
+    <text x="100" y="267" class="body">Canonical demographics</text><text x="100" y="297" class="body">Deterministic golden member ID</text><text x="100" y="327" class="body">Latest-source survivorship</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="74" y="410" width="330" height="205" rx="19" fill="#fff" stroke="#c6b9e3"/>
+    <rect x="74" y="410" width="330" height="12" rx="6" fill="#7757ba"/>
+    <circle cx="119" cy="469" r="24" fill="#f0eafb"/><text x="119" y="476" text-anchor="middle" class="label" fill="#6847ad">ID</text>
+    <text x="158" y="465" class="card-title">IDENTITY LINEAGE</text>
+    <text x="100" y="512" class="body">member_identifier_xref</text><text x="100" y="542" class="body">identity_match_decision</text><text x="100" y="572" class="body">Score + field-level evidence</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="1196" y="165" width="330" height="205" rx="19" fill="#fff" stroke="#b8e0d0"/>
+    <rect x="1196" y="165" width="330" height="12" rx="6" fill="#1b9b70"/>
+    <circle cx="1241" cy="224" r="24" fill="#e4f7ef"/><text x="1241" y="231" text-anchor="middle" class="label" fill="#138a62">P</text>
+    <text x="1280" y="220" class="card-title">DIM_PLAN</text>
+    <text x="1222" y="267" class="body">Plan and metal level</text><text x="1222" y="297" class="body">Annual deductible</text><text x="1222" y="327" class="body">Benefit effective period</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="1196" y="410" width="330" height="205" rx="19" fill="#fff" stroke="#ecd1a6"/>
+    <rect x="1196" y="410" width="330" height="12" rx="6" fill="#d18a2e"/>
+    <circle cx="1241" cy="469" r="24" fill="#fff1df"/><text x="1241" y="476" text-anchor="middle" class="label" fill="#a96214">C</text>
+    <text x="1280" y="465" class="card-title">FACT_COVERAGE</text>
+    <text x="1222" y="512" class="body">Policy and enrollment status</text><text x="1222" y="542" class="body">Coverage period</text><text x="1222" y="572" class="body">Member + plan foreign keys</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="463" y="151" width="300" height="126" rx="19" fill="#fff" stroke="#b8e0d0"/>
+    <rect x="463" y="151" width="300" height="11" rx="6" fill="#1b9b70"/>
+    <text x="493" y="204" class="card-title">FACT_CLAIM</text>
+    <text x="493" y="238" class="body">Allowed · paid · responsibility</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="837" y="151" width="300" height="126" rx="19" fill="#fff" stroke="#b7d7ef"/>
+    <rect x="837" y="151" width="300" height="11" rx="6" fill="#2c78c4"/>
+    <text x="867" y="204" class="card-title">QUALITY &amp; AUDIT</text>
+    <text x="867" y="238" class="body">DQ results · run manifests · evaluation</text>
+  </g>
+
+  <path d="M404 267C510 267 535 350 618 385" class="edge-blue"/><path d="M404 512C520 512 540 493 618 480" class="edge-purple"/><path d="M1196 267C1085 267 1065 350 982 385" class="edge-green"/><path d="M1196 512C1080 512 1060 493 982 480" class="edge-amber"/><path d="M613 277C613 315 645 327 663 347" class="edge-green"/><path d="M987 277C987 315 955 327 937 347" class="edge-blue"/>
+  <g><rect x="472" y="327" width="138" height="28" rx="14" fill="#e8f2fc"/><text x="541" y="346" text-anchor="middle" class="label" fill="#2368ad">SURVIVES INTO</text></g>
+  <g><rect x="456" y="474" width="154" height="28" rx="14" fill="#f0eafb"/><text x="533" y="493" text-anchor="middle" class="label" fill="#6847ad">RESOLVES TO</text></g>
+  <g><rect x="990" y="327" width="138" height="28" rx="14" fill="#e4f7ef"/><text x="1059" y="346" text-anchor="middle" class="label" fill="#137654">DESCRIBES</text></g>
+  <g><rect x="990" y="474" width="154" height="28" rx="14" fill="#fff1df"/><text x="1067" y="493" text-anchor="middle" class="label" fill="#9b5d18">ENROLLS</text></g>
+
+  <g filter="url(#shadow)">
+    <rect x="74" y="688" width="1452" height="266" rx="22" fill="#10243e"/>
+    <text x="108" y="735" class="white-title">Example governed relationships</text>
+    <line x1="108" y1="758" x2="1492" y2="758" stroke="#315579"/>
+    <text x="108" y="793" class="table-head">SOURCE</text><text x="374" y="793" class="table-head">KEY</text><text x="650" y="793" class="table-head">RELATIONSHIP</text><text x="930" y="793" class="table-head">TARGET</text><text x="1216" y="793" class="table-head">TRUST EVIDENCE</text>
+    <text x="108" y="831" class="table-row">source member</text><text x="374" y="831" class="table-row">MEM-00001</text><text x="650" y="831" class="table-row">resolves_to</text><text x="930" y="831" class="table-row">golden member UUID</text><text x="1216" y="831" class="table-row">score + survivor</text>
+    <text x="108" y="867" class="table-row">golden member</text><text x="374" y="867" class="table-row">member_id</text><text x="650" y="867" class="table-row">enrolled_in</text><text x="930" y="867" class="table-row">PLAN-SILVER-01</text><text x="1216" y="867" class="table-row">coverage period</text>
+    <text x="108" y="903" class="table-row">claim</text><text x="374" y="903" class="table-row">claim_id</text><text x="650" y="903" class="table-row">belongs_to</text><text x="930" y="903" class="table-row">golden member UUID</text><text x="1216" y="903" class="table-row">amount reconciliation</text>
+  </g>
+  <circle cx="105" cy="995" r="17" fill="#2c78c4"/><text x="105" y="1001" text-anchor="middle" class="label" fill="#fff">i</text>
+  <text x="135" y="1001" class="body">The model keeps canonical data, source crosswalks, match decisions, and run lineage together so every Member 360 record is explainable.</text>
+</svg>
