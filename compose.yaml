@@ -52,6 +52,36 @@ services:
       retries: 24
     restart: unless-stopped
 
+  api:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: infrastructure/docker/app/Dockerfile
+    environment:
+      CUSTOMER360_DATABASE_URL: postgresql+psycopg://customer360:customer360@postgres:5432/customer360
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  streamlit:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: infrastructure/docker/app/Dockerfile
+    command: ["uv", "run", "streamlit", "run", "apps/streamlit/app.py", "--server.address=0.0.0.0"]
+    environment:
+      CUSTOMER360_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./apps:/app/apps:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   opensearch_data:

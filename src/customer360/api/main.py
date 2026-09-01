@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request
+from prometheus_client import make_asgi_app
 from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 
@@ -19,6 +20,21 @@ from customer360.serving.member360 import build_engine, get_member, list_members
 
 class AssistantRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
+
+
+def _authorize_role(x_role: str = Header(default="analyst")) -> str:
+    if x_role not in {"analyst", "analytics"}:
+        raise HTTPException(status_code=403, detail="Unsupported role")
+    return x_role
+
+
+def _project_member(member: dict[str, Any], role: str) -> dict[str, Any]:
+    if role == "analyst":
+        return member
+    masked = dict(member)
+    for field in ("full_name", "date_of_birth", "email", "phone", "policy_number"):
+        masked[field] = "***"
+    return masked
 
 
 def create_app(
@@ -41,23 +57,32 @@ def create_app(
         lifespan=lifespan,
         description="Trusted API boundary over the rebuildable Member 360 serving projection.",
     )
+    app.mount("/metrics", make_asgi_app())
 
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
     @app.get("/api/v1/members")
-    def members(request: Request, limit: int = Query(100, ge=1, le=500)) -> list[dict[str, Any]]:
+    def members(
+        request: Request,
+        limit: int = Query(100, ge=1, le=500),
+        x_role: str = Header(default="analyst"),
+    ) -> list[dict[str, Any]]:
+        role = _authorize_role(x_role)
         engine: Engine = request.app.state.engine
-        return list_members(engine, limit=limit)
+        return [_project_member(row, role) for row in list_members(engine, limit=limit)]
 
     @app.get("/api/v1/members/{member_id}")
-    def member(request: Request, member_id: str) -> dict[str, Any]:
+    def member(
+        request: Request, member_id: str, x_role: str = Header(default="analyst")
+    ) -> dict[str, Any]:
+        role = _authorize_role(x_role)
         engine: Engine = request.app.state.engine
         result = get_member(engine, member_id)
         if result is None:
             raise HTTPException(status_code=404, detail="Member not found")
-        return result
+        return _project_member(result, role)
 
     @app.post("/api/v1/assistant")
     def assistant_answer(payload: AssistantRequest) -> dict[str, Any]:

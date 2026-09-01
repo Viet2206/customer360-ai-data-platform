@@ -204,10 +204,18 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
     return {name: len(rows) for name, rows in outputs.items()}
 
 
-def run_pipeline(source_dir: Path, data_root: Path) -> Path:
+def run_pipeline(source_dir: Path, data_root: Path, *, force: bool = False) -> Path:
     """Run Bronze, Silver, and Gold and persist a reconciliation manifest."""
 
     source_manifest = json.loads((source_dir / "manifest.json").read_text(encoding="utf-8"))
+    audit_dir = data_root / "audit" / "pipeline_runs"
+    state_path = data_root / "audit" / "pipeline_state.json"
+    if state_path.exists() and not force:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("dataset_id") == source_manifest["dataset_id"]:
+            previous_manifest = Path(str(state["manifest_path"]))
+            if previous_manifest.exists():
+                return previous_manifest
     run_id = str(uuid4())
     ingested_at = datetime.now(UTC).isoformat()
     bronze_counts = _bronze(source_dir, data_root, run_id, ingested_at)
@@ -238,10 +246,18 @@ def run_pipeline(source_dir: Path, data_root: Path) -> Path:
         "status": "succeeded",
         "counts": {"bronze": bronze_counts, "silver": silver_counts, "gold": gold_counts},
     }
-    audit_dir = data_root / "audit" / "pipeline_runs"
     audit_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = audit_dir / f"{run_id}.json"
     manifest_path.write_text(
         json.dumps(run_manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    state_path.write_text(
+        json.dumps(
+            {"dataset_id": source_manifest["dataset_id"], "manifest_path": str(manifest_path)},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
     )
     return manifest_path

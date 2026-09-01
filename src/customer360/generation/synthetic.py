@@ -197,7 +197,9 @@ def generate_dataset(
         )
 
     manifest = {
-        "dataset_id": _stable_id("dataset", seed, member_count),
+        "dataset_id": _stable_id(
+            "dataset", seed, member_count * 10_000 + duplicate_count * 10 + int(inject_defects)
+        ),
         "generator": "customer360.synthetic.v1",
         "seed": seed,
         "member_count": member_count,

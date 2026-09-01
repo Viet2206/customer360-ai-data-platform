@@ -22,6 +22,9 @@ def test_member_360_vertical_slice(tmp_path: Path) -> None:
     assert all(member["claim_count"] == 2 for member in members)
     assert all(member["total_allowed_amount"] > 0 for member in members)
 
+    repeated_manifest = run_pipeline(source_dir, data_root)
+    assert repeated_manifest == manifest_path
+
 
 def test_identity_resolution_and_quality_quarantine(tmp_path: Path) -> None:
     source_dir = tmp_path / "source"

@@ -52,3 +52,9 @@ def test_source_to_member_api(tmp_path: Path) -> None:
 
         missing = client.get("/api/v1/members/not-a-member")
         assert missing.status_code == 404
+
+        masked = client.get("/api/v1/members", headers={"X-Role": "analytics"})
+        assert masked.json()[0]["email"] == "***"
+
+        forbidden = client.get("/api/v1/members", headers={"X-Role": "unknown"})
+        assert forbidden.status_code == 403

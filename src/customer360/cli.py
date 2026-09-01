@@ -59,10 +59,11 @@ def generate_data(
 def pipeline(
     source_dir: Annotated[Path, typer.Option()] = Path("data/generated/demo"),
     data_root: Annotated[Path, typer.Option()] = Path("data"),
+    force: Annotated[bool, typer.Option()] = False,
 ) -> None:
     """Build the Bronze, Silver, and Gold Delta tables."""
 
-    manifest = run_pipeline(source_dir, data_root)
+    manifest = run_pipeline(source_dir, data_root, force=force)
     typer.echo(f"pipeline_manifest={manifest} status=ok")
 
 

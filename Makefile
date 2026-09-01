@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install format lint test test-all up up-ai down logs smoke compose-check clean
+.PHONY: help install format lint test test-all up up-ai up-apps down logs smoke compose-check clean
 
 help:
 	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -9,12 +9,12 @@ install: ## Install the project and development dependencies
 	uv sync --all-groups
 
 format: ## Format Python source and tests
-	uv run ruff format src tests
-	uv run ruff check --fix src tests
+	uv run ruff format src tests apps
+	uv run ruff check --fix src tests apps
 
 lint: ## Run formatting, lint, and type checks
-	uv run ruff format --check src tests
-	uv run ruff check src tests
+	uv run ruff format --check src tests apps
+	uv run ruff check src tests apps
 	uv run mypy src
 
 test: ## Run fast unit, contract, and local integration tests
@@ -28,6 +28,9 @@ up: ## Start required local services
 
 up-ai: ## Start PostgreSQL, OpenSearch, and Ollama
 	docker compose --profile ai up -d --wait
+
+up-apps: ## Start PostgreSQL, API, and Streamlit
+	docker compose --profile apps up -d --build --wait
 
 down: ## Stop local services
 	docker compose down
