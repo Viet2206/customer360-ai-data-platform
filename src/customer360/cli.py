@@ -9,6 +9,7 @@ from customer360 import __version__
 from customer360.common.config import get_settings
 from customer360.generation.synthetic import generate_dataset
 from customer360.pipelines.medallion import run_pipeline
+from customer360.serving.member360 import publish_member_360
 
 app = typer.Typer(no_args_is_help=True, help="Customer 360 platform developer commands.")
 
@@ -55,6 +56,18 @@ def pipeline(
 
     manifest = run_pipeline(source_dir, data_root)
     typer.echo(f"pipeline_manifest={manifest} status=ok")
+
+
+@app.command("publish-serving")
+def publish_serving(data_root: Annotated[Path, typer.Option()] = Path("data")) -> None:
+    """Publish the Gold Member 360 projection to PostgreSQL."""
+
+    settings = get_settings()
+    result = publish_member_360(data_root, settings.database_url)
+    typer.echo(
+        f"publish_id={result.publish_id} gold_run_id={result.gold_run_id} "
+        f"members={result.member_count} status=ok"
+    )
 
 
 if __name__ == "__main__":
