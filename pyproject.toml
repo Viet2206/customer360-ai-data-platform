@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "customer360-ai-data-platform"
+version = "0.1.0"
+description = "Reproducible health-insurance Member 360 data and AI platform"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Viet", email = "ngoquocviet2206@gmail.com" }]
+dependencies = [
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "pyyaml>=6.0.2,<7",
+  "structlog>=24.4,<26",
+  "typer>=0.15,<1",
+]
+
+[project.scripts]
+customer360 = "customer360.cli:app"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<8",
+  "ruff>=0.9,<1",
+  "types-pyyaml>=6.0.12.20241230",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/customer360"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers --cov=customer360 --cov-report=term-missing"
+testpaths = ["tests"]
+markers = [
+  "integration: requires local infrastructure",
+  "end_to_end: exercises a complete user flow",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["customer360"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["customer360"]
+

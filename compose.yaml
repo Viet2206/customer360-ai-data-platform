@@ -1,0 +1,23 @@
+name: customer360
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-customer360}
+      POSTGRES_USER: ${POSTGRES_USER:-customer360}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-customer360}
+    ports:
+      - "${CUSTOMER360_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

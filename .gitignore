@@ -1,0 +1,31 @@
+.DS_Store
+.env
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Generated datasets and local lakehouse state
+data/raw/
+data/bronze/
+data/silver/
+data/gold/
+data/quarantine/
+data/generated/
+data/opensearch/
+data/postgres/
+
+# Runtime artifacts
+logs/
+tmp/
+.airflow/
+ollama_models/
+
