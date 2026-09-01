@@ -21,10 +21,13 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --all-groups
+      - run: uv sync --frozen --all-groups --python 3.11
       - run: make lint
       - run: PGPASSWORD=customer360 psql -h localhost -p 55432 -U customer360 -d customer360 -f infrastructure/docker/postgres/init.sql
       - run: make test-all
