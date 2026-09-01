@@ -4,17 +4,26 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 
 from customer360 import __version__
+from customer360.assistant.service import GroundedAssistant
 from customer360.common.config import Settings, get_settings
 from customer360.serving.member360 import build_engine, get_member, list_members
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+class AssistantRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=1000)
+
+
+def create_app(
+    settings: Settings | None = None, assistant: GroundedAssistant | None = None
+) -> FastAPI:
     """Create an application with an isolated database engine lifecycle."""
 
     app_settings = settings or get_settings()
@@ -49,6 +58,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if result is None:
             raise HTTPException(status_code=404, detail="Member not found")
         return result
+
+    @app.post("/api/v1/assistant")
+    def assistant_answer(payload: AssistantRequest) -> dict[str, Any]:
+        if assistant is None:
+            raise HTTPException(status_code=503, detail="Knowledge index is not configured")
+        return asdict(assistant.answer(payload.question))
 
     return app
 

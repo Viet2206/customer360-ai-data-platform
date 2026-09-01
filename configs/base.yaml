@@ -2,7 +2,7 @@ environment: local
 log_level: INFO
 data_root: ./data
 database_url: postgresql+psycopg://customer360:customer360@localhost:55432/customer360
-opensearch_url: http://localhost:9200
-ollama_url: http://localhost:11434
+opensearch_url: http://localhost:59200
+ollama_url: http://localhost:51434
 ollama_chat_model: llama3.2:3b
 ollama_embedding_model: nomic-embed-text

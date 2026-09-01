@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     data_root: Path = Path("./data")
     database_url: str = "postgresql+psycopg://customer360:customer360@localhost:55432/customer360"
-    opensearch_url: str = "http://localhost:9200"
-    ollama_url: str = "http://localhost:11434"
+    opensearch_url: str = "http://localhost:59200"
+    ollama_url: str = "http://localhost:51434"
     ollama_chat_model: str = "llama3.2:3b"
     ollama_embedding_model: str = "nomic-embed-text"
     config_file: Path = Field(default=Path("configs/base.yaml"), exclude=True)

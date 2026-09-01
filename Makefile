@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install format lint test test-all up down logs smoke compose-check clean
+.PHONY: help install format lint test test-all up up-ai down logs smoke compose-check clean
 
 help:
 	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -25,6 +25,9 @@ test-all: ## Run all local test suites
 
 up: ## Start required local services
 	docker compose up -d --wait
+
+up-ai: ## Start PostgreSQL, OpenSearch, and Ollama
+	docker compose --profile ai up -d --wait
 
 down: ## Stop local services
 	docker compose down
