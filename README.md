@@ -17,6 +17,7 @@ The project uses synthetic data only. It is not a production system, does not pr
 - FastAPI member list/detail and document-search endpoints, masked analytics persona, health, and Prometheus metrics.
 - Markdown corpus indexing, Ollama embedding adapter, OpenSearch BM25/k-NN retrieval with reciprocal-rank fusion, citations, and abstention.
 - Streamlit Member 360 interface with dedicated document search, grounded assistant, and readiness status.
+- Versioned insurance knowledge corpus and an 11-query top-k retrieval benchmark.
 - Strict formatting, linting, typing, unit, contract, integration, and end-to-end tests in CI.
 
 See [intent.md](intent.md) for scope and [the architecture](docs/architecture/high-level.md) for system boundaries.
@@ -90,6 +91,7 @@ make test         # Unit and contract tests
 make test-all     # All local test suites
 make compose-check
 make up-search    # PostgreSQL + OpenSearch document retrieval
+make evaluate-search
 ```
 
 `run-pipeline` is idempotent by dataset ID. Use `--force` only when intentionally replaying the same generated release.
@@ -118,6 +120,7 @@ apps/             Streamlit UI
 infrastructure/   container definitions and database bootstrap
 tests/            unit, contract, integration, and end-to-end suites
 docs/             architecture decisions, security notes, and runbooks
+knowledge/        searchable insurance, synthetic-plan, and platform evidence
 ```
 
 ## Honest limitations

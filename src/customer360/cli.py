@@ -9,6 +9,8 @@ from customer360 import __version__
 from customer360.common.config import get_settings
 from customer360.generation.synthetic import generate_dataset
 from customer360.pipelines.medallion import run_pipeline
+from customer360.retrieval.core import HashEmbedder, OpenSearchVectorStore
+from customer360.retrieval.evaluation import evaluate_retrieval, load_retrieval_cases
 from customer360.serving.member360 import publish_member_360
 
 app = typer.Typer(no_args_is_help=True, help="Customer 360 platform developer commands.")
@@ -77,6 +79,30 @@ def publish_serving(data_root: Annotated[Path, typer.Option()] = Path("data")) -
         f"publish_id={result.publish_id} gold_run_id={result.gold_run_id} "
         f"members={result.member_count} status=ok"
     )
+
+
+@app.command("evaluate-retrieval")
+def evaluate_retrieval_command(
+    cases_path: Annotated[Path, typer.Option()] = Path("knowledge/evaluation/retrieval-cases.yaml"),
+    top_k: Annotated[int, typer.Option(min=1, max=10)] = 5,
+    minimum_recall: Annotated[float, typer.Option(min=0.0, max=1.0)] = 0.8,
+) -> None:
+    """Evaluate top-k OpenSearch retrieval against the versioned query set."""
+
+    settings = get_settings()
+    store = OpenSearchVectorStore(
+        settings.opensearch_url,
+        settings.knowledge_index_name,
+        HashEmbedder(settings.knowledge_embedding_dimension),
+    )
+    cases = load_retrieval_cases(cases_path)
+    result = evaluate_retrieval(store, cases, limit=top_k)
+    typer.echo(
+        f"retrieval_recall_at_{top_k}={result.recall_at_k:.3f} "
+        f"passed={result.passed}/{result.total} failed={','.join(result.failed_case_ids) or 'none'}"
+    )
+    if result.recall_at_k < minimum_recall:
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

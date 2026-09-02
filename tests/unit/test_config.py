@@ -39,6 +39,7 @@ def test_missing_yaml_uses_defaults(tmp_path: Path) -> None:
     settings = Settings.from_yaml(tmp_path / "missing.yaml")
 
     assert settings.environment == "local"
+    assert settings.knowledge_documents_path == Path("knowledge")
 
 
 def test_empty_yaml_uses_defaults(tmp_path: Path) -> None:

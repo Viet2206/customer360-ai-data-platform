@@ -1,0 +1,47 @@
+version: v1
+description: Representative insurance and platform queries for top-k retrieval evaluation.
+cases:
+  - id: cost-sharing-deductible
+    query: How do deductible, copayment, coinsurance, and member responsibility differ?
+    expected_sources:
+      - knowledge/member-guides/cost-sharing.md
+  - id: explanation-of-benefits
+    query: Is an explanation of benefits a bill, and what amounts should I compare?
+    expected_sources:
+      - knowledge/member-guides/claims-and-eob.md
+  - id: prior-authorization
+    query: Does prior authorization approval guarantee that a claim will be paid?
+    expected_sources:
+      - knowledge/member-guides/prior-authorization.md
+  - id: provider-network
+    query: How should I verify that a provider and facility are in network?
+    expected_sources:
+      - knowledge/member-guides/networks-and-care.md
+  - id: pharmacy-controls
+    query: What are formulary tiers, step therapy, and quantity limits?
+    expected_sources:
+      - knowledge/member-guides/pharmacy-and-preventive-care.md
+  - id: enrollment-dates
+    query: How do a qualifying life event and special enrollment affect coverage dates?
+    expected_sources:
+      - knowledge/member-guides/enrollment-and-coverage.md
+  - id: appeal-types
+    query: What is the difference between an internal appeal and external review?
+    expected_sources:
+      - knowledge/member-guides/appeals-and-billing-disputes.md
+  - id: identity-false-merge
+    query: Why should shared household contact information not automatically merge members?
+    expected_sources:
+      - knowledge/platform/identity-resolution.md
+  - id: quarantine-lineage
+    query: What evidence is stored when a record fails a data quality rule and is quarantined?
+    expected_sources:
+      - knowledge/platform/data-quality-and-lineage.md
+  - id: hybrid-retrieval
+    query: How does reciprocal-rank fusion combine BM25 and vector search?
+    expected_sources:
+      - knowledge/platform/retrieval-and-governance.md
+  - id: synthetic-plan-deductible
+    query: What is the annual deductible for the synthetic Community Silver 2500 plan?
+    expected_sources:
+      - knowledge/synthetic-plans/community-plan-guide.md

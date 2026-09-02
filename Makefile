@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install format lint test test-all up up-search up-ai up-apps down logs smoke compose-check clean
+.PHONY: help install format lint test test-all evaluate-search up up-search up-ai up-apps down logs smoke compose-check clean
 
 help:
 	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -22,6 +22,9 @@ test: ## Run fast unit, contract, and local integration tests
 
 test-all: ## Run all local test suites
 	uv run pytest
+
+evaluate-search: ## Measure top-5 retrieval recall against the knowledge benchmark
+	uv run customer360 evaluate-retrieval
 
 up: ## Start required local services
 	docker compose up -d --wait

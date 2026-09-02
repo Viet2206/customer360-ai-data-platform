@@ -7,6 +7,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 COPY docs ./docs
+COPY knowledge ./knowledge
 RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev
 
 EXPOSE 8000

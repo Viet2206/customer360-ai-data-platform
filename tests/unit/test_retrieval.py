@@ -14,6 +14,7 @@ def test_grounded_answer_contains_versioned_citation() -> None:
     assert answer.grounded
     assert "$2,500" in answer.text
     assert answer.citations
+    assert answer.citations[0].title == "Community Silver Benefits"
     assert answer.citations[0].version == "v1"
 
 

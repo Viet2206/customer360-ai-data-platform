@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     ollama_chat_model: str = "llama3.2:3b"
     ollama_embedding_model: str = "nomic-embed-text"
     knowledge_search_enabled: bool = False
-    knowledge_documents_path: Path = Path("docs")
+    knowledge_documents_path: Path = Path("knowledge")
     knowledge_index_name: str = "customer360-knowledge-v1"
     knowledge_embedding_dimension: int = 64
     knowledge_minimum_score: float = 0.02

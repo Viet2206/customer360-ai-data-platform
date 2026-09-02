@@ -39,7 +39,11 @@ def chunk_markdown(path: Path, *, version: str = "v1", max_words: int = 120) -> 
     """Split Markdown by headings and bounded word windows with stable IDs."""
 
     text = path.read_text(encoding="utf-8")
-    title = path.stem.replace("-", " ").title()
+    first_heading = next(
+        (line.lstrip("# ").strip() for line in text.splitlines() if line.startswith("# ")),
+        "",
+    )
+    title = first_heading or path.stem.replace("-", " ").title()
     section = title
     chunks: list[Chunk] = []
     buffer: list[str] = []

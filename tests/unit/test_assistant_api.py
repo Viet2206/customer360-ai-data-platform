@@ -45,7 +45,7 @@ def test_document_search_returns_ranked_evidence() -> None:
 
     assert response.status_code == 200
     assert response.json()
-    assert response.json()[0]["title"] == "Benefits"
+    assert response.json()[0]["title"] == "Community Silver Benefits"
     assert response.json()[0]["section"]
     assert response.json()[0]["excerpt"]
     assert response.json()[0]["score"] > 0
