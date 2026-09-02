@@ -69,6 +69,39 @@ def _load_health(api_url: str) -> dict[str, Any]:
     return dict(response.json())
 
 
+@st.cache_data(ttl=10, show_spinner=False)
+def _load_member_claims(api_url: str, member_id: str, role: str) -> list[dict[str, Any]]:
+    response = httpx.get(
+        f"{api_url}/api/v1/members/{member_id}/claims",
+        headers={"X-Role": role},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return list(response.json())
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def _load_member_identity(api_url: str, member_id: str) -> dict[str, Any]:
+    response = httpx.get(
+        f"{api_url}/api/v1/members/{member_id}/identity",
+        headers={"X-Role": "analyst"},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return dict(response.json())
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def _load_member_quality(api_url: str, member_id: str, role: str) -> list[dict[str, Any]]:
+    response = httpx.get(
+        f"{api_url}/api/v1/members/{member_id}/quality-issues",
+        headers={"X-Role": role},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return list(response.json())
+
+
 def _search_documents(api_url: str, query: str, limit: int = 6) -> dict[str, Any]:
     response = httpx.get(
         f"{api_url}/api/v1/documents/search",
@@ -232,6 +265,27 @@ st.markdown(
     .financial-bar .member { background:#21a179; }
     .bar-labels { display:flex; justify-content:space-between; gap:1rem; color:#627d98; font-size:.7rem; }
 
+    .section-heading { display:flex; justify-content:space-between; align-items:flex-end; margin:1.15rem .1rem .65rem; }
+    .section-heading strong { color:var(--ink); font-size:.88rem; }
+    .section-heading span { color:#829ab1; font-size:.68rem; }
+    .claim-list { display:grid; gap:.65rem; }
+    .claim-card { display:grid; grid-template-columns:1.05fr 1.4fr .9fr .9fr .9fr; gap:.85rem; align-items:center; background:#fff; border:1px solid #e1e8f0; border-radius:14px; padding:.85rem 1rem; }
+    .claim-date { color:var(--ink); font-size:.76rem; font-weight:720; }
+    .claim-provider { color:var(--ink); font-size:.76rem; font-weight:700; }
+    .claim-category { color:#829ab1; font-size:.65rem; margin-top:.18rem; }
+    .claim-value { color:var(--ink); font-size:.76rem; font-weight:700; text-align:right; }
+    .claim-value span { display:block; color:#829ab1; font-size:.58rem; font-weight:720; letter-spacing:.06em; text-transform:uppercase; margin-bottom:.18rem; }
+    .status-pill { display:inline-block; border-radius:999px; padding:.28rem .5rem; font-size:.61rem; font-weight:760; }
+    .status-pill.paid { color:#116a4c; background:#e5f5ee; }
+    .status-pill.pending { color:#8b5514; background:#fff3de; }
+    .status-pill.denied { color:#a33c3c; background:#fdeaea; }
+    .evidence-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:.75rem; }
+    .evidence-card { background:#fff; border:1px solid #e1e8f0; border-radius:13px; padding:.85rem .95rem; }
+    .evidence-top { display:flex; justify-content:space-between; gap:.5rem; align-items:center; }
+    .evidence-title { color:var(--ink); font-size:.75rem; font-weight:740; }
+    .evidence-copy { color:#627d98; font-size:.67rem; line-height:1.5; margin-top:.42rem; }
+    .empty-state { color:#627d98; font-size:.75rem; background:#f8fafc; border:1px dashed #ccd8e3; border-radius:12px; padding:.85rem 1rem; margin-top:.65rem; }
+
     .assistant-hero { background:linear-gradient(120deg,#f0f5ff,#ecfbf8); border:1px solid #d5e6f4; border-radius:16px; padding:1.2rem 1.3rem; margin-bottom:.8rem; }
     .assistant-icon { display:inline-grid; place-items:center; width:34px; height:34px; border-radius:10px; background:#176cb0; color:#fff; font-weight:800; margin-right:.55rem; }
     .assistant-title { color:var(--ink); font-weight:760; font-size:1rem; }
@@ -275,12 +329,16 @@ st.markdown(
       .detail-grid { grid-template-columns:1fr; }
       .coverage-grid { grid-template-columns:1fr 1fr; }
       .journey { grid-template-columns:1fr 1fr; }
+      .claim-card { grid-template-columns:1fr 1fr; }
+      .evidence-grid { grid-template-columns:1fr; }
     }
     @media (max-width: 520px) {
       .workspace-title { font-size:1.65rem; }
       .member-primary { align-items:flex-start; }
       .member-secondary { flex-wrap:wrap; }
       .info-grid, .coverage-grid, .journey { grid-template-columns:1fr; }
+      .claim-card { grid-template-columns:1fr; }
+      .claim-value { text-align:left; }
       .allocation { align-items:flex-start; flex-direction:column; }
       .page-foot { flex-direction:column; }
     }
@@ -326,6 +384,15 @@ if not members:
     st.stop()
 
 selected = st.sidebar.selectbox("Member record", members, format_func=_member_label)
+try:
+    member_id = str(selected["member_id"])
+    member_claims = _load_member_claims(API_URL, member_id, role)
+    member_quality = _load_member_quality(API_URL, member_id, role)
+    member_identity = _load_member_identity(API_URL, member_id) if role == "analyst" else None
+except (httpx.HTTPError, KeyError, ValueError) as exc:
+    st.error(f"Member evidence could not be loaded: {exc}")
+    st.stop()
+
 search_ready = platform_health.get("document_search") == "ready"
 search_status_class = "" if search_ready else " offline"
 
@@ -477,6 +544,33 @@ with coverage_tab:
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(
+        f'<div class="section-heading"><strong>Claim history</strong><span>{len(member_claims)} governed records · newest first</span></div>',
+        unsafe_allow_html=True,
+    )
+    if not member_claims:
+        st.markdown(
+            '<div class="empty-state">No claims are linked to this member.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        for claim in member_claims:
+            claim_status = str(claim.get("claim_status", "unknown")).lower()
+            status_class = (
+                claim_status if claim_status in {"paid", "pending", "denied"} else "pending"
+            )
+            st.markdown(
+                f"""
+                <article class="claim-card">
+                  <div><div class="claim-date">{_safe(_pretty_date(claim.get("service_date")))}</div><div class="claim-category mono">{_safe(claim.get("claim_id"))}</div></div>
+                  <div><div class="claim-provider">{_safe(claim.get("provider_name"))}</div><div class="claim-category">{_safe(claim.get("service_category"))} · {_safe(claim.get("claim_status_reason"))}</div></div>
+                  <div><span class="status-pill {status_class}">{escape(claim_status.title())}</span></div>
+                  <div class="claim-value"><span>Allowed</span>{_money(claim.get("allowed_amount"))}</div>
+                  <div class="claim-value"><span>Member owes</span>{_money(claim.get("member_responsibility"))}</div>
+                </article>
+                """,
+                unsafe_allow_html=True,
+            )
 
 with search_tab:
     st.markdown(
@@ -621,6 +715,68 @@ with lineage_tab:
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(
+        '<div class="section-heading"><strong>Identity evidence</strong><span>Auditable resolution inputs and model decisions</span></div>',
+        unsafe_allow_html=True,
+    )
+    if member_identity is None:
+        st.markdown(
+            '<div class="empty-state">Identity evidence is restricted to the Member services access profile.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        sources = list(member_identity.get("sources") or [])
+        decisions = list(member_identity.get("decisions") or [])
+        for source in sources:
+            source_label = "Survivor" if source.get("is_survivor") else "Linked source"
+            st.markdown(
+                f"""
+                <div class="evidence-card">
+                  <div class="evidence-top"><span class="evidence-title mono">{_safe(source.get("source_member_id"))}</span><span class="soft-badge green">{source_label}</span></div>
+                  <div class="evidence-copy">Cluster size {_safe(source.get("cluster_size"))} · Run <span class="mono">{_safe(source.get("run_id"))}</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        if decisions:
+            st.markdown('<div class="evidence-grid">', unsafe_allow_html=True)
+            for decision in decisions:
+                st.markdown(
+                    f"""
+                    <div class="evidence-card">
+                      <div class="evidence-top"><span class="evidence-title">{_safe(str(decision.get("decision", "")).replace("_", " ").title())}</span><span class="soft-badge blue">Score {float(decision.get("match_score") or 0):.3f}</span></div>
+                      <div class="evidence-copy"><span class="mono">{_safe(decision.get("left_source_member_id"))}</span> ↔ <span class="mono">{_safe(decision.get("right_source_member_id"))}</span><br/>{_safe(str(decision.get("confidence_band", "")).title())} confidence · {_safe(decision.get("decision_model_version"))}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+        elif sources:
+            st.markdown(
+                '<div class="empty-state">Single-source identity; no pairwise resolution decision was required.</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown(
+        f'<div class="section-heading"><strong>Linked data quality</strong><span>{len(member_quality)} issues associated with this member</span></div>',
+        unsafe_allow_html=True,
+    )
+    if not member_quality:
+        st.markdown(
+            '<div class="empty-state">No quarantined quality issues are linked to this golden member.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        for issue in member_quality:
+            st.markdown(
+                f"""
+                <div class="evidence-card">
+                  <div class="evidence-top"><span class="evidence-title">{_safe(issue.get("rule_id"))}</span><span class="soft-badge amber">{_safe(str(issue.get("severity", "")).upper())}</span></div>
+                  <div class="evidence-copy">{_safe(issue.get("message"))}<br/>{_safe(issue.get("dataset"))} · {_safe(issue.get("action"))} · Owner {_safe(issue.get("owner"))}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 st.markdown(
     """
