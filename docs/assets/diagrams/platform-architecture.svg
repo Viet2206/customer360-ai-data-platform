@@ -1,114 +1,232 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050" role="img" aria-labelledby="title desc">
-  <title id="title">Member 360 AI Data Platform architecture</title>
-  <desc id="desc">End-to-end architecture from synthetic insurance sources through Delta medallion processing, identity resolution, serving projections, hybrid retrieval, APIs, and user applications.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="953" viewBox="0 0 1800 1100" role="img" aria-labelledby="title desc">
+  <title id="title">Customer 360 AI Data Platform — technical architecture</title>
+  <desc id="desc">Technical data architecture showing payer source releases, medallion Delta processing, data quality, identity resolution, PostgreSQL serving, versioned OpenSearch retrieval, FastAPI, Streamlit, and operational controls.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fbff"/><stop offset="1" stop-color="#eef3fa"/></linearGradient>
-    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10243e"/><stop offset="1" stop-color="#173b62"/></linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#16304f" flood-opacity="0.13"/></filter>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#285b8f"/></marker>
-    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#138a62"/></marker>
+    <marker id="data-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#334155"/></marker>
+    <marker id="meta-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker>
     <style>
-      .title{font:700 42px Inter,Arial,sans-serif;fill:#10243e;letter-spacing:.3px}.subtitle{font:400 19px Inter,Arial,sans-serif;fill:#55708f}.section{font:700 17px Inter,Arial,sans-serif;fill:#285b8f;letter-spacing:1.8px}.card-title{font:700 20px Inter,Arial,sans-serif;fill:#10243e}.body{font:400 15px Inter,Arial,sans-serif;fill:#49637f}.small{font:400 13px Inter,Arial,sans-serif;fill:#607895}.white-title{font:700 22px Inter,Arial,sans-serif;fill:#fff}.white-body{font:400 14px Inter,Arial,sans-serif;fill:#dcecff}.pill{font:700 12px Inter,Arial,sans-serif;letter-spacing:.7px}.num{font:700 18px Inter,Arial,sans-serif}.arrow{fill:none;stroke:#285b8f;stroke-width:3;marker-end:url(#arrow)}.arrow-green{fill:none;stroke:#138a62;stroke-width:3;marker-end:url(#arrow-green)}.dash{fill:none;stroke:#7289a4;stroke-width:2.5;stroke-dasharray:8 7;marker-end:url(#arrow)}
+      .title{font:700 34px Inter,Arial,sans-serif;fill:#0f172a}.subtitle{font:400 17px Inter,Arial,sans-serif;fill:#475569}
+      .zone{fill:#f8fafc;stroke:#94a3b8;stroke-width:2}.zone-data{fill:#f8fbff;stroke:#3b82f6;stroke-width:2}.zone-serve{fill:#f8fafc;stroke:#0f766e;stroke-width:2}
+      .zone-label{font:700 14px Inter,Arial,sans-serif;letter-spacing:1.4px;fill:#334155}.zone-note{font:400 12px Inter,Arial,sans-serif;fill:#64748b}
+      .box{fill:#fff;stroke:#94a3b8;stroke-width:1.6}.box-blue{fill:#eff6ff;stroke:#3b82f6;stroke-width:1.8}.box-green{fill:#ecfdf5;stroke:#10b981;stroke-width:1.8}.box-purple{fill:#f5f3ff;stroke:#8b5cf6;stroke-width:1.8}.box-amber{fill:#fffbeb;stroke:#f59e0b;stroke-width:1.8}.box-red{fill:#fff1f2;stroke:#e11d48;stroke-width:1.8}.box-dark{fill:#0f2942;stroke:#0f2942;stroke-width:1.8}
+      .node-title{font:700 16px Inter,Arial,sans-serif;fill:#0f172a}.node-sub{font:400 12.5px Inter,Arial,sans-serif;fill:#475569}.node-mono{font:500 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#475569}.white{fill:#fff}.white-sub{fill:#dbeafe}
+      .data{fill:none;stroke:#334155;stroke-width:2.4;marker-end:url(#data-arrow)}.data-bi{fill:none;stroke:#334155;stroke-width:2.4;marker-start:url(#data-arrow);marker-end:url(#data-arrow)}
+      .meta{fill:none;stroke:#64748b;stroke-width:1.8;stroke-dasharray:7 6;marker-end:url(#meta-arrow)}.boundary{fill:none;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:8 7}
+      .label{font:600 11px Inter,Arial,sans-serif;fill:#475569}.pill{font:700 10px Inter,Arial,sans-serif;letter-spacing:.6px}
     </style>
   </defs>
-  <rect width="1600" height="1050" fill="url(#bg)"/>
-  <text x="800" y="62" text-anchor="middle" class="title">MEMBER 360 AI DATA PLATFORM</text>
-  <text x="800" y="96" text-anchor="middle" class="subtitle">Trusted insurance data products with rebuildable operational and vector projections</text>
 
-  <text x="72" y="153" class="section">01 · SOURCE RELEASE</text>
-  <g filter="url(#shadow)">
-    <rect x="60" y="176" width="250" height="222" rx="18" fill="#fff" stroke="#cddaea"/>
-    <rect x="60" y="176" width="250" height="12" rx="6" fill="#2c78c4"/>
-    <circle cx="102" cy="230" r="23" fill="#e7f1fc"/><text x="102" y="237" text-anchor="middle" class="num" fill="#2368ad">S</text>
-    <text x="140" y="226" class="card-title">Payer domains</text>
-    <text x="86" y="270" class="body">Members &amp; demographics</text><text x="86" y="300" class="body">Plans &amp; benefit design</text><text x="86" y="330" class="body">Coverage &amp; policies</text><text x="86" y="360" class="body">Claims &amp; responsibility</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="60" y="424" width="250" height="174" rx="18" fill="#fff" stroke="#cddaea"/>
-    <rect x="60" y="424" width="250" height="12" rx="6" fill="#54a2dd"/>
-    <text x="86" y="474" class="card-title">Release contract</text>
-    <text x="86" y="508" class="body">Deterministic CSV files</text><text x="86" y="538" class="body">Checksums + record counts</text><text x="86" y="568" class="body">Duplicate ground truth</text>
+  <rect width="1800" height="1100" fill="#ffffff"/>
+  <text x="50" y="55" class="title">Customer 360 AI Data Platform</text>
+  <text x="50" y="84" class="subtitle">Implemented local architecture · systems of record, rebuildable projections, and governed access paths</text>
+  <g transform="translate(1460 43)">
+    <line x1="0" y1="0" x2="42" y2="0" class="data"/><text x="52" y="4" class="label">data flow</text>
+    <line x1="0" y1="27" x2="42" y2="27" class="meta"/><text x="52" y="31" class="label">control / lineage</text>
   </g>
 
-  <text x="380" y="153" class="section">02 · TRUSTED LAKEHOUSE</text>
-  <g filter="url(#shadow)">
-    <rect x="365" y="176" width="250" height="222" rx="18" fill="#fff" stroke="#bed4ed"/>
-    <rect x="365" y="176" width="250" height="12" rx="6" fill="#b7772a"/>
-    <circle cx="407" cy="230" r="23" fill="#fff1df"/><text x="407" y="237" text-anchor="middle" class="num" fill="#a96214">B</text>
-    <text x="445" y="226" class="card-title">Bronze Delta</text>
-    <text x="391" y="270" class="body">Source-aligned records</text><text x="391" y="300" class="body">Immutable ingestion metadata</text><text x="391" y="330" class="body">File + run lineage</text>
-    <rect x="391" y="351" width="166" height="27" rx="13" fill="#fff1df"/><text x="474" y="369" text-anchor="middle" class="pill" fill="#9b5d18">RECONCILED</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="660" y="176" width="250" height="222" rx="18" fill="#fff" stroke="#bce3d3"/>
-    <rect x="660" y="176" width="250" height="12" rx="6" fill="#1b9b70"/>
-    <circle cx="702" cy="230" r="23" fill="#e4f7ef"/><text x="702" y="237" text-anchor="middle" class="num" fill="#138a62">S</text>
-    <text x="740" y="226" class="card-title">Silver Delta</text>
-    <text x="686" y="270" class="body">Typed and normalized</text><text x="686" y="300" class="body">Domain quality rules</text><text x="686" y="330" class="body">Safe rejection boundary</text>
-    <rect x="686" y="351" width="166" height="27" rx="13" fill="#e4f7ef"/><text x="769" y="369" text-anchor="middle" class="pill" fill="#137654">CONFORMED</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="955" y="176" width="250" height="222" rx="18" fill="#fff" stroke="#d6c8ef"/>
-    <rect x="955" y="176" width="250" height="12" rx="6" fill="#7757ba"/>
-    <circle cx="997" cy="230" r="23" fill="#f0eafb"/><text x="997" y="237" text-anchor="middle" class="num" fill="#6847ad">ID</text>
-    <text x="1035" y="226" class="card-title">Identity resolution</text>
-    <text x="981" y="270" class="body">Weighted evidence scoring</text><text x="981" y="300" class="body">Explainable match decisions</text><text x="981" y="330" class="body">Survivorship + source xref</text>
-    <rect x="981" y="351" width="166" height="27" rx="13" fill="#f0eafb"/><text x="1064" y="369" text-anchor="middle" class="pill" fill="#6847ad">EVALUATED</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="1250" y="176" width="290" height="222" rx="18" fill="url(#navy)"/>
-    <rect x="1250" y="176" width="290" height="12" rx="6" fill="#e0ad40"/>
-    <circle cx="1292" cy="230" r="23" fill="#f6d988"/><text x="1292" y="237" text-anchor="middle" class="num" fill="#70500b">G</text>
-    <text x="1330" y="226" class="white-title">Gold Delta</text>
-    <text x="1276" y="270" class="white-body">Canonical member + plan dimensions</text><text x="1276" y="300" class="white-body">Coverage and claim facts</text><text x="1276" y="330" class="white-body">Member 360 + match lineage</text>
-    <rect x="1276" y="351" width="196" height="27" rx="13" fill="#294e75"/><text x="1374" y="369" text-anchor="middle" class="pill" fill="#fff">ANALYTICAL RECORD</text>
-  </g>
-  <path d="M310 287H353" class="arrow"/><path d="M615 287H648" class="arrow"/><path d="M910 287H943" class="arrow"/><path d="M1205 287H1238" class="arrow"/>
+  <!-- Source systems -->
+  <rect x="40" y="120" width="270" height="730" rx="6" class="zone"/>
+  <text x="60" y="150" class="zone-label">SOURCE SYSTEMS</text>
+  <text x="60" y="171" class="zone-note">versioned synthetic/public inputs</text>
 
-  <g filter="url(#shadow)">
-    <rect x="660" y="440" width="250" height="130" rx="18" fill="#fff7ed" stroke="#e7b66e"/>
-    <text x="686" y="483" class="card-title" fill="#925615">Quality quarantine</text>
-    <text x="686" y="517" class="body">Rule ID · record key · reason</text><text x="686" y="545" class="small">Rejected before Silver admission</text>
-  </g>
-  <path d="M785 398V428" class="dash"/>
-  <g filter="url(#shadow)">
-    <rect x="955" y="440" width="250" height="130" rx="18" fill="#fff" stroke="#cddaea"/>
-    <text x="981" y="483" class="card-title">Audit &amp; evaluation</text>
-    <text x="981" y="517" class="body">Run manifests + counts</text><text x="981" y="545" class="small">Precision · recall · replay state</text>
-  </g>
-  <path d="M1080 398V428" class="dash"/>
+  <rect x="65" y="205" width="220" height="112" rx="5" class="box"/>
+  <text x="84" y="234" class="node-title">Payer release</text>
+  <text x="84" y="258" class="node-sub">member · plan · coverage · claim</text>
+  <text x="84" y="281" class="node-mono">CSV + manifest.json</text>
+  <text x="84" y="301" class="node-mono">counts · SHA-256 · contract v1</text>
 
-  <text x="72" y="666" class="section">03 · REBUILDABLE PROJECTIONS &amp; ACCESS</text>
-  <path d="M1395 398V633H340V692" class="arrow-green"/>
-  <path d="M720 633V692" class="arrow-green"/>
-  <g filter="url(#shadow)">
-    <rect x="175" y="704" width="330" height="164" rx="18" fill="#fff" stroke="#bce3d3"/>
-    <rect x="175" y="704" width="330" height="11" rx="6" fill="#1b9b70"/>
-    <text x="205" y="757" class="card-title">PostgreSQL serving</text>
-    <text x="205" y="792" class="body">Atomic Member 360 publication</text><text x="205" y="822" class="body">Gold run lineage + indexed queries</text><text x="205" y="850" class="small">Operational projection · rebuildable</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="554" y="704" width="330" height="164" rx="18" fill="#fff" stroke="#b8d6ef"/>
-    <rect x="554" y="704" width="330" height="11" rx="6" fill="#2c78c4"/>
-    <text x="584" y="757" class="card-title">OpenSearch hybrid index</text>
-    <text x="584" y="792" class="body">BM25 lexical + k-NN vectors</text><text x="584" y="822" class="body">Reciprocal-rank fusion</text><text x="584" y="850" class="small">Ollama embeddings · rebuildable</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="933" y="704" width="290" height="164" rx="18" fill="url(#navy)"/>
-    <text x="963" y="757" class="white-title">FastAPI trust boundary</text>
-    <text x="963" y="792" class="white-body">Versioned member + assistant API</text><text x="963" y="822" class="white-body">Persona masking + metrics</text><text x="963" y="850" class="small" fill="#c9ddf2">Citations · abstention</text>
-  </g>
-  <g filter="url(#shadow)">
-    <rect x="1272" y="704" width="250" height="164" rx="18" fill="#fff" stroke="#d6c8ef"/>
-    <rect x="1272" y="704" width="250" height="11" rx="6" fill="#7757ba"/>
-    <text x="1302" y="757" class="card-title">Experience layer</text>
-    <text x="1302" y="792" class="body">Streamlit Member 360</text><text x="1302" y="822" class="body">Grounded assistant</text><text x="1302" y="850" class="small">Analyst and analytics personas</text>
-  </g>
-  <path d="M505 786V890H921V840" class="arrow-green"/><path d="M884 786H921" class="arrow"/><path d="M1223 786H1260" class="arrow"/>
+  <rect x="65" y="360" width="220" height="112" rx="5" class="box"/>
+  <text x="84" y="389" class="node-title">Identity test data</text>
+  <text x="84" y="413" class="node-sub">labelled duplicate identities</text>
+  <text x="84" y="436" class="node-mono">ground_truth.csv</text>
+  <text x="84" y="456" class="node-mono">known match / non-match</text>
 
-  <rect x="60" y="925" width="1480" height="76" rx="18" fill="#10243e"/>
-  <circle cx="101" cy="963" r="22" fill="#2c78c4"/><text x="101" y="970" text-anchor="middle" class="num" fill="#fff">i</text>
-  <text x="140" y="957" class="white-title">Trust rule</text>
-  <text x="140" y="982" class="white-body">Delta Gold owns canonical truth. PostgreSQL and OpenSearch are disposable projections that can always be rebuilt.</text>
-  <rect x="1281" y="946" width="221" height="34" rx="17" fill="#294e75"/><text x="1391" y="968" text-anchor="middle" class="pill" fill="#fff">SYNTHETIC DATA ONLY</text>
+  <rect x="65" y="555" width="220" height="112" rx="5" class="box"/>
+  <text x="84" y="584" class="node-title">Knowledge corpus</text>
+  <text x="84" y="608" class="node-sub">insurance + platform guidance</text>
+  <text x="84" y="631" class="node-mono">Markdown · source · version</text>
+  <text x="84" y="651" class="node-mono">80 deterministic chunks</text>
+
+  <rect x="65" y="710" width="220" height="86" rx="5" class="box"/>
+  <text x="84" y="739" class="node-title">Runtime configuration</text>
+  <text x="84" y="763" class="node-mono">YAML + CUSTOMER360_*</text>
+  <text x="84" y="783" class="node-sub">no secrets in source control</text>
+
+  <!-- Data plane -->
+  <rect x="345" y="120" width="835" height="730" rx="6" class="zone-data"/>
+  <text x="365" y="150" class="zone-label">DATA PLANE · DELTA LAKEHOUSE</text>
+  <text x="365" y="171" class="zone-note">canonical analytical system of record</text>
+
+  <rect x="380" y="205" width="155" height="112" rx="5" class="box-blue"/>
+  <text x="398" y="233" class="node-title">Contract gate</text>
+  <text x="398" y="257" class="node-sub">path allow-list</text>
+  <text x="398" y="278" class="node-sub">count reconciliation</text>
+  <text x="398" y="299" class="node-sub">checksum validation</text>
+
+  <rect x="575" y="205" width="155" height="112" rx="5" class="box-amber"/>
+  <text x="593" y="233" class="node-title">Bronze</text>
+  <text x="593" y="257" class="node-sub">source aligned</text>
+  <text x="593" y="278" class="node-mono">_run_id · _source_file</text>
+  <text x="593" y="299" class="node-mono">_ingested_at</text>
+
+  <polygon points="785,205 915,205 940,261 915,317 785,317 760,261" class="box-red"/>
+  <text x="850" y="242" text-anchor="middle" class="node-title">DQ gate</text>
+  <text x="850" y="266" text-anchor="middle" class="node-sub">domain + integrity</text>
+  <text x="850" y="288" text-anchor="middle" class="node-sub">reconciliation rules</text>
+
+  <rect x="975" y="205" width="165" height="112" rx="5" class="box-green"/>
+  <text x="993" y="233" class="node-title">Silver</text>
+  <text x="993" y="257" class="node-sub">typed + normalized</text>
+  <text x="993" y="278" class="node-mono">members · plans</text>
+  <text x="993" y="299" class="node-mono">coverage · claims</text>
+
+  <path d="M310 261H368" class="data"/><path d="M535 261H563" class="data"/><path d="M730 261H748" class="data"/><path d="M940 261H963" class="data"/>
+
+  <rect x="575" y="380" width="250" height="120" rx="5" class="box-red"/>
+  <text x="594" y="409" class="node-title">Quarantine + DQ results</text>
+  <text x="594" y="433" class="node-mono">rule_id · severity · owner</text>
+  <text x="594" y="454" class="node-mono">record_key · source_member_id</text>
+  <text x="594" y="477" class="node-sub">invalid records remain auditable</text>
+  <path d="M850 317V346H700V368" class="meta"/>
+  <text x="858" y="346" class="label">reject</text>
+
+  <rect x="865" y="380" width="275" height="120" rx="5" class="box-purple"/>
+  <text x="884" y="409" class="node-title">Identity resolution</text>
+  <text x="884" y="433" class="node-mono">weighted-rules-v1 · threshold</text>
+  <text x="884" y="454" class="node-mono">score · confidence · decision</text>
+  <text x="884" y="477" class="node-sub">cluster + deterministic survivor</text>
+  <path d="M1057 317V368" class="data"/>
+  <path d="M310 416H330V350H1002V368" class="meta"/>
+  <text x="475" y="342" class="label">labelled precision / recall evaluation</text>
+
+  <rect x="865" y="555" width="275" height="190" rx="5" class="box-dark"/>
+  <text x="884" y="586" class="node-title white">Gold data products</text>
+  <text x="884" y="614" class="node-mono white-sub">dim_member · dim_plan</text>
+  <text x="884" y="637" class="node-mono white-sub">fact_coverage · fact_claim</text>
+  <text x="884" y="660" class="node-mono white-sub">member_identifier_xref</text>
+  <text x="884" y="683" class="node-mono white-sub">identity_match_decision</text>
+  <text x="884" y="706" class="node-mono white-sub">member_360</text>
+  <rect x="884" y="720" width="135" height="18" rx="9" fill="#1e4b70"/>
+  <text x="951" y="733" text-anchor="middle" class="pill white">CANONICAL TRUTH</text>
+  <path d="M1002 500V543" class="data"/>
+  <path d="M825 440H842V650H853" class="meta"/>
+  <text x="709" y="637" class="label">quality linkage</text>
+
+  <rect x="380" y="555" width="205" height="112" rx="5" class="box-blue"/>
+  <text x="398" y="584" class="node-title">Chunking pipeline</text>
+  <text x="398" y="608" class="node-mono">heading-aware windows</text>
+  <text x="398" y="630" class="node-mono">stable chunk_id + metadata</text>
+  <text x="398" y="651" class="node-sub">content digest for versioning</text>
+  <path d="M310 611H368" class="data"/>
+
+  <rect x="620" y="555" width="165" height="112" rx="5" class="box-purple"/>
+  <text x="638" y="584" class="node-title">Embedding</text>
+  <text x="638" y="608" class="node-mono">HashEmbedder (demo)</text>
+  <text x="638" y="630" class="node-mono">dimension = 64</text>
+  <text x="638" y="651" class="node-sub">Ollama adapter boundary</text>
+  <path d="M585 611H608" class="data"/>
+
+  <rect x="380" y="710" width="405" height="84" rx="5" class="box"/>
+  <text x="398" y="739" class="node-title">Pipeline audit state</text>
+  <text x="398" y="763" class="node-mono">dataset_id · run_id · stage counts · status · manifest path</text>
+  <text x="398" y="783" class="node-sub">idempotent replay and schema evolution</text>
+  <path d="M653 317V335H360V752H368" class="meta"/>
+
+  <!-- Serving and access plane -->
+  <rect x="1215" y="120" width="545" height="730" rx="6" class="zone-serve"/>
+  <text x="1235" y="150" class="zone-label">SERVING + ACCESS PLANE</text>
+  <text x="1235" y="171" class="zone-note">rebuildable projections behind one API boundary</text>
+
+  <g>
+    <rect x="1250" y="205" width="205" height="130" rx="5" class="box-green"/>
+    <ellipse cx="1352" cy="205" rx="102" ry="14" fill="#ecfdf5" stroke="#10b981" stroke-width="1.8"/>
+    <text x="1268" y="239" class="node-title">PostgreSQL serving</text>
+    <text x="1268" y="263" class="node-mono">member_360 · claims</text>
+    <text x="1268" y="284" class="node-mono">identity · quality · audit</text>
+    <text x="1268" y="309" class="node-sub">atomic Gold publication</text>
+  </g>
+  <path d="M1140 650H1185V270H1238" class="data"/>
+  <text x="1161" y="636" class="label">publish</text>
+
+  <g>
+    <rect x="1250" y="500" width="205" height="145" rx="5" class="box-blue"/>
+    <ellipse cx="1352" cy="500" rx="102" ry="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8"/>
+    <text x="1268" y="535" class="node-title">OpenSearch 3.6</text>
+    <text x="1268" y="559" class="node-mono">text + knn_vector</text>
+    <text x="1268" y="580" class="node-mono">BM25 + k-NN → weighted RRF</text>
+    <text x="1268" y="605" class="node-sub">bulk reconcile · atomic alias</text>
+    <text x="1268" y="626" class="node-sub">content-addressed index</text>
+  </g>
+  <path d="M785 611H820V820H1200V572H1238" class="data"/>
+
+  <rect x="1500" y="300" width="220" height="235" rx="5" class="box-dark"/>
+  <text x="1520" y="332" class="node-title white">FastAPI /api/v1</text>
+  <text x="1520" y="360" class="node-mono white-sub">/members · /claims</text>
+  <text x="1520" y="382" class="node-mono white-sub">/identity · /quality-issues</text>
+  <text x="1520" y="404" class="node-mono white-sub">/documents/search</text>
+  <text x="1520" y="426" class="node-mono white-sub">/assistant</text>
+  <line x1="1520" y1="444" x2="1700" y2="444" stroke="#315777"/>
+  <text x="1520" y="469" class="node-sub white-sub">typed contracts · masking</text>
+  <text x="1520" y="491" class="node-sub white-sub">citations · abstention</text>
+  <text x="1520" y="513" class="node-sub white-sub">request ID · readiness</text>
+  <path d="M1455 270H1475V365H1488" class="data"/>
+  <path d="M1455 572H1475V475H1488" class="data"/>
+
+  <rect x="1250" y="705" width="205" height="96" rx="5" class="box"/>
+  <text x="1268" y="735" class="node-title">Prometheus endpoint</text>
+  <text x="1268" y="759" class="node-mono">/metrics · /live · /ready</text>
+  <text x="1268" y="781" class="node-sub">structured request logs</text>
+  <path d="M1500 505H1475V753H1467" class="meta"/>
+
+  <rect x="1500" y="600" width="220" height="201" rx="5" class="box-purple"/>
+  <text x="1520" y="632" class="node-title">Streamlit workspace</text>
+  <text x="1520" y="660" class="node-sub">member + coverage + claims</text>
+  <text x="1520" y="682" class="node-sub">identity + DQ evidence</text>
+  <text x="1520" y="704" class="node-sub">document search + assistant</text>
+  <line x1="1520" y1="723" x2="1700" y2="723" stroke="#ddd6fe"/>
+  <rect x="1520" y="743" width="82" height="20" rx="10" fill="#ede9fe"/><text x="1561" y="757" text-anchor="middle" class="pill" fill="#6d28d9">ANALYST</text>
+  <rect x="1610" y="743" width="90" height="20" rx="10" fill="#e2e8f0"/><text x="1655" y="757" text-anchor="middle" class="pill" fill="#475569">MASKED</text>
+  <text x="1520" y="785" class="node-sub">API-only data access</text>
+  <path d="M1610 535V588" class="data-bi"/>
+
+  <!-- Control plane -->
+  <rect x="40" y="885" width="1720" height="165" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.8" stroke-dasharray="9 7"/>
+  <text x="60" y="915" class="zone-label">CONTROL PLANE + DELIVERY</text>
+  <text x="60" y="936" class="zone-note">build · test · operate</text>
+
+  <rect x="260" y="910" width="245" height="105" rx="5" class="box"/>
+  <text x="279" y="940" class="node-title">CLI + configuration</text>
+  <text x="279" y="965" class="node-mono">generate · pipeline · publish</text>
+  <text x="279" y="987" class="node-mono">index · evaluate · smoke</text>
+  <text x="279" y="1008" class="node-sub">typed settings + env overrides</text>
+
+  <rect x="545" y="910" width="245" height="105" rx="5" class="box"/>
+  <text x="564" y="940" class="node-title">Docker Compose</text>
+  <text x="564" y="965" class="node-mono">postgres · opensearch</text>
+  <text x="564" y="987" class="node-mono">api · streamlit · ollama*</text>
+  <text x="564" y="1008" class="node-sub">health checks + persistent volumes</text>
+
+  <rect x="830" y="910" width="245" height="105" rx="5" class="box"/>
+  <text x="849" y="940" class="node-title">Quality gates</text>
+  <text x="849" y="965" class="node-mono">ruff · mypy · pytest + coverage</text>
+  <text x="849" y="987" class="node-mono">PostgreSQL + OpenSearch tests</text>
+  <text x="849" y="1008" class="node-sub">36 automated tests</text>
+
+  <rect x="1115" y="910" width="245" height="105" rx="5" class="box"/>
+  <text x="1134" y="940" class="node-title">GitHub Actions</text>
+  <text x="1134" y="965" class="node-mono">clean-runner integration gate</text>
+  <text x="1134" y="987" class="node-mono">index + retrieval evaluation</text>
+  <text x="1134" y="1008" class="node-sub">main branch delivery</text>
+
+  <rect x="1400" y="910" width="315" height="105" rx="5" class="box-amber"/>
+  <text x="1419" y="940" class="node-title">Security boundary (demo)</text>
+  <text x="1419" y="965" class="node-mono">X-Role: analyst | analytics</text>
+  <text x="1419" y="987" class="node-sub">field masking at API boundary</text>
+  <text x="1419" y="1008" class="node-sub">synthetic data only · no PHI</text>
+
+  <path d="M175 796V962H248" class="meta"/>
+  <path d="M383 910V850" class="meta"/>
+  <path d="M668 910V850" class="meta"/>
+  <path d="M952 910V850" class="meta"/>
+  <path d="M1238 910V850" class="meta"/>
 </svg>

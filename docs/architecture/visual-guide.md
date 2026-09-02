@@ -6,7 +6,14 @@ These diagrams describe implemented boundaries. They do not imply services or co
 
 ![Member 360 AI Data Platform architecture](../assets/diagrams/platform-architecture.svg)
 
-The source release is reconciled into Bronze before conformance. Quality failures are quarantined before Silver admission. Identity decisions and their evaluation remain inspectable, while Delta Gold owns canonical analytical truth. PostgreSQL and OpenSearch are rebuildable projections behind FastAPI.
+The diagram separates three runtime zones and one cross-cutting control plane:
+
+- **Source systems:** contract-versioned payer releases, labelled identity data, knowledge documents, and runtime configuration.
+- **Delta data plane:** checksum validation, Bronze lineage, the quality admission gate, Silver conformance, quarantine, identity resolution, canonical Gold models, and pipeline audit state.
+- **Serving and access plane:** atomic PostgreSQL projections, content-addressed OpenSearch indexes, the FastAPI trust boundary, operational endpoints, and the Streamlit workspace.
+- **Control plane:** CLI workflows, Compose services, automated quality gates, GitHub Actions, and the current demo security boundary.
+
+Solid arrows carry data. Dashed arrows carry configuration, lineage, evaluation labels, quality relationships, and operational telemetry. Delta Gold owns canonical analytical truth; PostgreSQL and OpenSearch remain rebuildable projections.
 
 ## Governed Member 360 data product
 

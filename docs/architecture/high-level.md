@@ -4,18 +4,6 @@ The platform separates systems of record from rebuildable serving projections.
 
 ![Member 360 AI Data Platform architecture](../assets/diagrams/platform-architecture.svg)
 
-```text
-Generated/public sources
-        |
- Bronze Delta -> Silver Delta + quarantine -> identity resolution -> Gold Delta
-                                                            |             |
-                                                PostgreSQL serving    document manifest
-                                                            |             |
-                                                            +-- FastAPI --+-- OpenSearch
-                                                                    |
-                                                          Streamlit and assistant
-```
-
 ## Trust boundaries
 
 - Bronze is immutable and source aligned.
