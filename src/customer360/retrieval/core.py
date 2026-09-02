@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,6 +13,53 @@ from typing import Any, Protocol
 import httpx
 from opensearchpy import OpenSearch
 from opensearchpy.helpers import bulk
+
+QUESTION_STOPWORDS = {
+    "a",
+    "about",
+    "an",
+    "are",
+    "can",
+    "could",
+    "did",
+    "do",
+    "does",
+    "evidence",
+    "explain",
+    "explains",
+    "for",
+    "how",
+    "in",
+    "is",
+    "my",
+    "of",
+    "on",
+    "should",
+    "that",
+    "the",
+    "this",
+    "to",
+    "was",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "why",
+    "would",
+}
+
+
+def meaningful_search_terms(query: str) -> str:
+    """Remove question scaffolding while retaining the user's domain concepts."""
+
+    terms = [
+        token
+        for token in re.findall(r"[a-z0-9]+", query.lower())
+        if token not in QUESTION_STOPWORDS
+    ]
+    return " ".join(terms) or query
 
 
 @dataclass(frozen=True)
@@ -262,9 +310,18 @@ class OpenSearchVectorStore:
 
     def search(self, query: str, *, limit: int = 5) -> list[SearchHit]:
         candidate_count = max(limit * 2, limit)
+        lexical_query = meaningful_search_terms(query)
         lexical = self.client.search(
             index=self.index_name,
-            body={"size": candidate_count, "query": {"match": {"text": query}}},
+            body={
+                "size": candidate_count,
+                "query": {
+                    "multi_match": {
+                        "query": lexical_query,
+                        "fields": ["title^2", "section^1.5", "text"],
+                    }
+                },
+            },
         )
         semantic = self.client.search(
             index=self.index_name,
@@ -282,10 +339,12 @@ class OpenSearchVectorStore:
         )
         scores: dict[str, float] = {}
         sources: dict[str, dict[str, Any]] = {}
-        for response in (lexical, semantic):
+        # Exact domain language is the safer signal for insurance guidance; vector
+        # similarity broadens recall without overpowering strong lexical evidence.
+        for response, weight in ((lexical, 2.0), (semantic, 1.0)):
             for rank, hit in enumerate(response["hits"]["hits"], start=1):
                 chunk_id = str(hit["_id"])
-                scores[chunk_id] = scores.get(chunk_id, 0.0) + 1.0 / (60 + rank)
+                scores[chunk_id] = scores.get(chunk_id, 0.0) + weight / (60 + rank)
                 sources[chunk_id] = dict(hit["_source"])
         results: list[SearchHit] = []
         ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)[:limit]

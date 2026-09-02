@@ -1,7 +1,17 @@
 from pathlib import Path
 
 from customer360.assistant.service import GroundedAssistant
-from customer360.retrieval.core import HashEmbedder, InMemoryVectorStore, chunk_markdown
+from customer360.retrieval.core import (
+    HashEmbedder,
+    InMemoryVectorStore,
+    chunk_markdown,
+    meaningful_search_terms,
+)
+
+
+def test_meaningful_search_terms_removes_question_scaffolding() -> None:
+    assert meaningful_search_terms("What evidence explains a deductible?") == "deductible"
+    assert meaningful_search_terms("What is this?") == "What is this?"
 
 
 def test_grounded_answer_contains_versioned_citation() -> None:
