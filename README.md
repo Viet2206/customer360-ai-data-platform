@@ -13,10 +13,11 @@ The project uses synthetic data only. It is not a production system, does not pr
 - Deterministic payer-source generation with checksums and labelled duplicate ground truth.
 - Delta Bronze, Silver, Gold, quarantine, quality results, and pipeline audit manifests.
 - Explainable deterministic/weighted identity resolution, survivorship, crosswalks, and precision/recall evaluation.
-- Atomic PostgreSQL Member 360 publication with Gold run lineage.
-- FastAPI member list/detail and document-search endpoints, masked analytics persona, health, and Prometheus metrics.
+- Atomic PostgreSQL Member 360, claim history, identity evidence, and linked-quality publication with Gold run lineage.
+- Typed FastAPI member, claim, identity, quality, search, and assistant contracts with masked analytics projection.
+- Separate liveness/readiness probes, request correlation, structured timing logs, and Prometheus metrics.
 - Markdown corpus indexing, Ollama embedding adapter, OpenSearch BM25/k-NN retrieval with reciprocal-rank fusion, citations, and abstention.
-- Streamlit Member 360 interface with dedicated document search, grounded assistant, and readiness status.
+- Streamlit operations workspace with claim history, identity confidence, quality findings, document search, grounded assistant, and access-profile masking.
 - Versioned insurance knowledge corpus and an 11-query top-k retrieval benchmark.
 - Strict formatting, linting, typing, unit, contract, integration, and end-to-end tests in CI.
 
@@ -66,13 +67,16 @@ Create and publish the demo data:
 
 ```bash
 uv run customer360 generate-data --members 100 --duplicates 10
-uv run customer360 run-pipeline
+uv run customer360 run-pipeline --force
 uv run customer360 publish-serving
 make up-search
+make index-search
 make up-apps
 ```
 
 Open the API documentation at `http://localhost:8000/docs` and Streamlit at `http://localhost:8501`. Document search is available in the **Document search** tab and through `GET /api/v1/documents/search?q=identity+resolution`.
+
+Operational checks are available at `GET /live`, `GET /ready`, and `GET /metrics`. See the [platform hardening review](docs/reviews/platform-hardening.md) for the verified capability matrix and remaining production boundaries.
 
 `make up-search` starts the OpenSearch vector index on `localhost:59200`. Start the optional Ollama runtime as well with `make up-ai`; it binds to `localhost:51434`.
 
