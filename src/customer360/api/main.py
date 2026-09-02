@@ -70,8 +70,14 @@ def create_app(
                     app_settings.knowledge_index_name,
                     embedder,
                 )
-                chunks = load_markdown_chunks(app_settings.knowledge_documents_path)
-                store.rebuild(chunks)
+                build_result = None
+                if app_settings.knowledge_auto_rebuild:
+                    chunks = load_markdown_chunks(app_settings.knowledge_documents_path)
+                    build_result = store.rebuild(chunks)
+                elif not store.is_ready():
+                    raise RuntimeError(
+                        f"Knowledge index alias does not exist: {app_settings.knowledge_index_name}"
+                    )
                 app.state.document_store = store
                 app.state.assistant = app.state.assistant or GroundedAssistant(
                     store,
@@ -79,8 +85,10 @@ def create_app(
                 )
                 logger.info(
                     "knowledge_index_ready",
-                    chunks=len(chunks),
                     index=app_settings.knowledge_index_name,
+                    physical_index=build_result.index_name if build_result else None,
+                    chunks=build_result.document_count if build_result else None,
+                    changed=build_result.changed if build_result else False,
                 )
             except Exception as exc:  # keep the trusted member API available
                 app.state.knowledge_error = str(exc)

@@ -9,7 +9,11 @@ from customer360 import __version__
 from customer360.common.config import get_settings
 from customer360.generation.synthetic import generate_dataset
 from customer360.pipelines.medallion import run_pipeline
-from customer360.retrieval.core import HashEmbedder, OpenSearchVectorStore
+from customer360.retrieval.core import (
+    HashEmbedder,
+    OpenSearchVectorStore,
+    load_markdown_chunks,
+)
 from customer360.retrieval.evaluation import evaluate_retrieval, load_retrieval_cases
 from customer360.serving.member360 import publish_member_360
 
@@ -103,6 +107,25 @@ def evaluate_retrieval_command(
     )
     if result.recall_at_k < minimum_recall:
         raise typer.Exit(1)
+
+
+@app.command("index-knowledge")
+def index_knowledge() -> None:
+    """Build and atomically promote the configured OpenSearch knowledge index."""
+
+    settings = get_settings()
+    store = OpenSearchVectorStore(
+        settings.opensearch_url,
+        settings.knowledge_index_name,
+        HashEmbedder(settings.knowledge_embedding_dimension),
+    )
+    chunks = load_markdown_chunks(settings.knowledge_documents_path)
+    result = store.rebuild(chunks)
+    typer.echo(
+        f"knowledge_index={result.index_name} alias={result.alias_name} "
+        f"chunks={result.document_count} digest={result.corpus_digest[:12]} "
+        f"changed={str(result.changed).lower()} status=ok"
+    )
 
 
 if __name__ == "__main__":

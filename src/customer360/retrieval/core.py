@@ -5,11 +5,13 @@ from __future__ import annotations
 import hashlib
 import math
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 import httpx
 from opensearchpy import OpenSearch
+from opensearchpy.helpers import bulk
 
 
 @dataclass(frozen=True)
@@ -27,6 +29,15 @@ class Chunk:
 class SearchHit:
     chunk: Chunk
     score: float
+
+
+@dataclass(frozen=True)
+class IndexBuildResult:
+    alias_name: str
+    index_name: str
+    corpus_digest: str
+    document_count: int
+    changed: bool
 
 
 class Embedder(Protocol):
@@ -135,39 +146,119 @@ class InMemoryVectorStore:
 class OpenSearchVectorStore:
     """OpenSearch k-NN index; trusted document manifests remain in Delta."""
 
-    def __init__(self, url: str, index_name: str, embedder: Embedder) -> None:
-        self.client = OpenSearch(hosts=[url])
+    def __init__(
+        self,
+        url: str,
+        index_name: str,
+        embedder: Embedder,
+        *,
+        client: OpenSearch | None = None,
+    ) -> None:
+        self.client = client or OpenSearch(hosts=[url])
         self.index_name = index_name
         self.embedder = embedder
 
-    def rebuild(self, chunks: list[Chunk]) -> None:
-        if self.client.indices.exists(index=self.index_name):
-            self.client.indices.delete(index=self.index_name)
+    def is_ready(self) -> bool:
+        """Return whether the search alias or a legacy direct index exists."""
+
+        return bool(self.client.indices.exists(index=self.index_name))
+
+    def _corpus_digest(self, chunks: list[Chunk]) -> str:
+        payload = "\n".join(
+            [
+                f"embedding-dimension:{self.embedder.dimension}",
+                *(f"{chunk.chunk_id}:{chunk.version}:{chunk.text}" for chunk in chunks),
+            ]
+        )
+        return hashlib.sha256(payload.encode()).hexdigest()
+
+    def rebuild(self, chunks: list[Chunk]) -> IndexBuildResult:
+        """Build a verified physical index and atomically promote its read alias."""
+
+        if not chunks:
+            raise ValueError("Cannot build an empty knowledge index")
+        corpus_digest = self._corpus_digest(chunks)
+        physical_index = f"{self.index_name}-{corpus_digest[:12]}"
+        alias_exists = bool(self.client.indices.exists_alias(name=self.index_name))
+        current_indexes = (
+            set(self.client.indices.get_alias(name=self.index_name)) if alias_exists else set()
+        )
+        if physical_index in current_indexes:
+            return IndexBuildResult(
+                self.index_name,
+                physical_index,
+                corpus_digest,
+                len(chunks),
+                False,
+            )
+
+        if self.client.indices.exists(index=physical_index):
+            self.client.indices.delete(index=physical_index)
         self.client.indices.create(
-            index=self.index_name,
+            index=physical_index,
             body={
-                "settings": {"index": {"knn": True}},
+                "settings": {
+                    "index": {"knn": True, "number_of_shards": 1, "number_of_replicas": 0}
+                },
                 "mappings": {
+                    "dynamic": "strict",
+                    "_meta": {
+                        "corpus_digest": corpus_digest,
+                        "embedding_dimension": self.embedder.dimension,
+                        "built_at": datetime.now(UTC).isoformat(),
+                    },
                     "properties": {
                         "text": {"type": "text"},
                         "embedding": {
                             "type": "knn_vector",
                             "dimension": self.embedder.dimension,
                         },
+                        "chunk_id": {"type": "keyword"},
                         "document_id": {"type": "keyword"},
+                        "title": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
+                        "source": {"type": "keyword"},
+                        "section": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
                         "version": {"type": "keyword"},
-                    }
+                    },
                 },
             },
         )
-        for chunk in chunks:
-            self.client.index(
-                index=self.index_name,
-                id=chunk.chunk_id,
-                body={**asdict(chunk), "embedding": self.embedder.embed(chunk.text)},
-                refresh=False,
+        actions = [
+            {
+                "_op_type": "index",
+                "_index": physical_index,
+                "_id": chunk.chunk_id,
+                "_source": {**asdict(chunk), "embedding": self.embedder.embed(chunk.text)},
+            }
+            for chunk in chunks
+        ]
+        indexed_count, _ = bulk(self.client, actions, refresh=True, raise_on_error=True)
+        actual_count = int(self.client.count(index=physical_index)["count"])
+        if indexed_count != len(chunks) or actual_count != len(chunks):
+            raise RuntimeError(
+                "Knowledge index reconciliation failed: "
+                f"expected={len(chunks)}, bulk={indexed_count}, actual={actual_count}"
             )
-        self.client.indices.refresh(index=self.index_name)
+
+        actions_for_alias: list[dict[str, dict[str, Any]]] = []
+        if alias_exists:
+            actions_for_alias.extend(
+                {"remove": {"index": index, "alias": self.index_name}}
+                for index in sorted(current_indexes)
+            )
+        elif self.client.indices.exists(index=self.index_name):
+            actions_for_alias.append({"remove_index": {"index": self.index_name}})
+        actions_for_alias.append(
+            {"add": {"index": physical_index, "alias": self.index_name, "is_write_index": True}}
+        )
+        self.client.indices.update_aliases(body={"actions": actions_for_alias})
+        return IndexBuildResult(
+            self.index_name,
+            physical_index,
+            corpus_digest,
+            actual_count,
+            True,
+        )
 
     def search(self, query: str, *, limit: int = 5) -> list[SearchHit]:
         candidate_count = max(limit * 2, limit)

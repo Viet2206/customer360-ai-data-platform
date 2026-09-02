@@ -19,6 +19,17 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U customer360 -d customer360"
           --health-interval 5s --health-timeout 5s --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3.6.0
+        env:
+          discovery.type: single-node
+          DISABLE_INSTALL_DEMO_CONFIG: "true"
+          DISABLE_SECURITY_PLUGIN: "true"
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        ports: ["59200:9200"]
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s --health-timeout 5s --health-retries 24
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -31,4 +42,6 @@ jobs:
       - run: make lint
       - run: PGPASSWORD=customer360 psql -h localhost -p 55432 -U customer360 -d customer360 -f infrastructure/docker/postgres/init.sql
       - run: make test-all
+      - run: make index-search
+      - run: make evaluate-search
       - run: make compose-check

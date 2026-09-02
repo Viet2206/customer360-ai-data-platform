@@ -19,3 +19,5 @@ def test_ai_services_are_optional_and_persistent() -> None:
     assert compose["services"]["ollama"]["profiles"] == ["ai"]
     assert "opensearch_data" in compose["volumes"]
     assert "ollama_data" in compose["volumes"]
+    api_environment = compose["services"]["api"]["environment"]
+    assert api_environment["CUSTOMER360_KNOWLEDGE_AUTO_REBUILD"] == "true"

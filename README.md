@@ -91,6 +91,7 @@ make test         # Unit and contract tests
 make test-all     # All local test suites
 make compose-check
 make up-search    # PostgreSQL + OpenSearch document retrieval
+make index-search # Versioned build + atomic alias promotion
 make evaluate-search
 ```
 
