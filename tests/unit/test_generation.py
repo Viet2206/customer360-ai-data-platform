@@ -18,6 +18,7 @@ def test_generation_is_reproducible(tmp_path: Path) -> None:
         item["sha256"] for item in second_manifest["files"]
     ]
     assert first_manifest["dataset_id"] == second_manifest["dataset_id"]
+    assert first_manifest["contract_version"] == "payer-demo-v1"
 
 
 def test_generation_rejects_empty_population(tmp_path: Path) -> None:

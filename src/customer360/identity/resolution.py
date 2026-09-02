@@ -102,6 +102,15 @@ def resolve_members(rows: list[dict[str, Any]], *, match_threshold: float = 0.75
                     "left_source_member_id": best_source_id,
                     "right_source_member_id": candidate["source_member_id"],
                     "match_score": best_score,
+                    "match_threshold": match_threshold,
+                    "decision_model_version": "weighted-rules-v1",
+                    "confidence_band": (
+                        "auto_match"
+                        if matched
+                        else "manual_review"
+                        if best_score >= max(match_threshold - 0.15, 0.0)
+                        else "no_match"
+                    ),
                     "decision": "match" if matched else "no_match",
                     **best_evidence,
                 }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -18,17 +19,97 @@ from customer360.quality.validation import validate_domains
 
 SOURCE_NAMES = ("members", "plans", "coverage", "claims")
 
+QUARANTINE_SCHEMA = pa.schema(
+    [
+        ("run_id", pa.string()),
+        ("dataset", pa.string()),
+        ("rule_id", pa.string()),
+        ("severity", pa.string()),
+        ("action", pa.string()),
+        ("record_key", pa.string()),
+        ("source_member_id", pa.string()),
+        ("message", pa.string()),
+        ("record_json", pa.string()),
+        ("owner", pa.string()),
+        ("observed_at", pa.string()),
+    ]
+)
+
+IDENTITY_DECISION_SCHEMA = pa.schema(
+    [
+        ("left_source_member_id", pa.string()),
+        ("right_source_member_id", pa.string()),
+        ("match_score", pa.float64()),
+        ("match_threshold", pa.float64()),
+        ("decision_model_version", pa.string()),
+        ("confidence_band", pa.string()),
+        ("decision", pa.string()),
+        ("name_similarity", pa.float64()),
+        ("date_of_birth_exact", pa.float64()),
+        ("email_exact", pa.float64()),
+        ("phone_exact", pa.float64()),
+        ("member_id", pa.string()),
+        ("run_id", pa.string()),
+    ]
+)
+
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as stream:
         return list(csv.DictReader(stream))
 
 
-def _write_delta(path: Path, rows: list[dict[str, Any]]) -> None:
-    if not rows:
-        raise ValueError(f"Cannot write empty Delta table: {path}")
+def _write_delta(
+    path: Path, rows: list[dict[str, Any]], *, empty_schema: pa.Schema | None = None
+) -> None:
+    if not rows and empty_schema is None:
+        raise ValueError(f"Cannot write empty Delta table without a schema: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    write_deltalake(str(path), pa.Table.from_pylist(rows), mode="overwrite")
+    table = pa.Table.from_pylist(rows) if rows else pa.Table.from_pylist([], schema=empty_schema)
+    write_deltalake(str(path), table, mode="overwrite")
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(64 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _validate_source_release(source_dir: Path, manifest: dict[str, Any]) -> dict[str, int]:
+    """Verify the source contract before any Bronze table is changed."""
+
+    if manifest.get("contract_version") != "payer-demo-v1":
+        raise ValueError("Unsupported or missing source contract_version")
+    entries = manifest.get("files")
+    if not isinstance(entries, list):
+        raise ValueError("Source manifest files must be a list")
+    entries_by_name = {
+        str(entry.get("name")): entry for entry in entries if isinstance(entry, dict)
+    }
+    if len(entries_by_name) != len(entries):
+        raise ValueError("Source manifest contains duplicate or invalid file entries")
+
+    expected_counts: dict[str, int] = {}
+    for name in SOURCE_NAMES:
+        entry = entries_by_name.get(name)
+        if entry is None:
+            raise ValueError(f"Source manifest is missing required dataset: {name}")
+        expected_path = f"{name}.csv"
+        if entry.get("path") != expected_path:
+            raise ValueError(f"Unexpected source path for {name}: {entry.get('path')}")
+        source_path = source_dir / expected_path
+        if not source_path.is_file():
+            raise ValueError(f"Required source file is missing: {source_path}")
+        actual_checksum = _sha256(source_path)
+        if actual_checksum != entry.get("sha256"):
+            raise ValueError(f"Checksum mismatch for {expected_path}")
+        record_count = entry.get("record_count")
+        if not isinstance(record_count, int) or record_count < 0:
+            raise ValueError(f"Invalid record count for {name}")
+        expected_counts[name] = record_count
+    return expected_counts
 
 
 def read_delta(path: Path) -> list[dict[str, Any]]:
@@ -128,8 +209,11 @@ def _silver(data_root: Path, run_id: str) -> dict[str, int]:
     for name, rows in quality.valid.items():
         _write_delta(data_root / "silver" / name, rows)
     _write_delta(data_root / "quality" / "dq_results", quality.checks)
-    if quality.issues:
-        _write_delta(data_root / "quarantine" / "records", quality.issues)
+    _write_delta(
+        data_root / "quarantine" / "records",
+        quality.issues,
+        empty_schema=QUARANTINE_SCHEMA,
+    )
     return {name: len(rows) for name, rows in quality.valid.items()}
 
 
@@ -190,17 +274,30 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
             }
         )
 
+    identity_xref = [{**row, "run_id": run_id} for row in identity.xref]
+    identity_decisions = [
+        {
+            **row,
+            "member_id": member_keys[row["right_source_member_id"]],
+            "run_id": run_id,
+        }
+        for row in identity.decisions
+    ]
     outputs = {
         "dim_member": dim_member,
         "dim_plan": dim_plan,
         "fact_coverage": fact_coverage,
         "fact_claim": fact_claim,
-        "member_identifier_xref": identity.xref,
-        "identity_match_decision": identity.decisions,
+        "member_identifier_xref": identity_xref,
+        "identity_match_decision": identity_decisions,
         "member_360": member_360,
     }
     for name, rows in outputs.items():
-        _write_delta(data_root / "gold" / name, rows)
+        _write_delta(
+            data_root / "gold" / name,
+            rows,
+            empty_schema=IDENTITY_DECISION_SCHEMA if name == "identity_match_decision" else None,
+        )
     return {name: len(rows) for name, rows in outputs.items()}
 
 
@@ -208,6 +305,7 @@ def run_pipeline(source_dir: Path, data_root: Path, *, force: bool = False) -> P
     """Run Bronze, Silver, and Gold and persist a reconciliation manifest."""
 
     source_manifest = json.loads((source_dir / "manifest.json").read_text(encoding="utf-8"))
+    expected = _validate_source_release(source_dir, source_manifest)
     audit_dir = data_root / "audit" / "pipeline_runs"
     state_path = data_root / "audit" / "pipeline_state.json"
     if state_path.exists() and not force:
@@ -219,11 +317,6 @@ def run_pipeline(source_dir: Path, data_root: Path, *, force: bool = False) -> P
     run_id = str(uuid4())
     ingested_at = datetime.now(UTC).isoformat()
     bronze_counts = _bronze(source_dir, data_root, run_id, ingested_at)
-    expected = {
-        item["name"]: item["record_count"]
-        for item in source_manifest["files"]
-        if item["name"] in SOURCE_NAMES
-    }
     if bronze_counts != expected:
         raise ValueError(
             f"Bronze reconciliation failed: expected={expected}, actual={bronze_counts}"

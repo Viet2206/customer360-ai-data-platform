@@ -197,6 +197,7 @@ def generate_dataset(
         )
 
     manifest = {
+        "contract_version": "payer-demo-v1",
         "dataset_id": _stable_id(
             "dataset", seed, member_count * 10_000 + duplicate_count * 10 + int(inject_defects)
         ),

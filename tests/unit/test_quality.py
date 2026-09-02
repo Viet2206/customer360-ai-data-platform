@@ -1,3 +1,5 @@
+import json
+
 from customer360.quality.validation import validate_domains
 
 
@@ -34,3 +36,6 @@ def test_quarantines_invalid_and_orphan_records() -> None:
         "coverage.member_exists",
         "claim.member_exists",
     }
+    assert all(issue["owner"].endswith("-data-owner") for issue in result.issues)
+    assert all(issue["observed_at"] for issue in result.issues)
+    assert all(isinstance(json.loads(issue["record_json"]), dict) for issue in result.issues)

@@ -27,6 +27,8 @@ def test_resolves_explainable_duplicate_cluster() -> None:
     assert len(result.xref) == 2
     assert result.decisions[0]["decision"] == "match"
     assert result.decisions[0]["match_score"] >= 0.75
+    assert result.decisions[0]["confidence_band"] == "auto_match"
+    assert result.decisions[0]["decision_model_version"] == "weighted-rules-v1"
 
     metrics = evaluate_identity(
         result.xref,
