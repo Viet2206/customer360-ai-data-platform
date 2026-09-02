@@ -5,11 +5,15 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from time import perf_counter
 from typing import Any
+from uuid import uuid4
 
 import structlog
-from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse
 from prometheus_client import make_asgi_app
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from customer360 import __version__
@@ -22,9 +26,11 @@ from customer360.api.schemas import (
     IdentityResponse,
     MemberResponse,
     QualityIssueResponse,
+    ReadinessResponse,
 )
 from customer360.assistant.service import GroundedAssistant, SearchStore
 from customer360.common.config import Settings, get_settings
+from customer360.common.logging import configure_logging
 from customer360.retrieval.core import HashEmbedder, OpenSearchVectorStore, load_markdown_chunks
 from customer360.serving.member360 import (
     build_engine,
@@ -70,6 +76,7 @@ def create_app(
     """Create an application with an isolated database engine lifecycle."""
 
     app_settings = settings or get_settings()
+    configure_logging(app_settings.log_level)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -125,6 +132,23 @@ def create_app(
     )
     app.mount("/metrics", make_asgi_app())
 
+    @app.middleware("http")
+    async def request_context(request: Request, call_next: Any) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(uuid4())
+        started = perf_counter()
+        response: Response = await call_next(request)
+        duration_ms = round((perf_counter() - started) * 1000, 2)
+        response.headers["X-Request-ID"] = request_id
+        logger.info(
+            "http_request_completed",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+        )
+        return response
+
     @app.get("/health", response_model=HealthResponse, tags=["operations"])
     def health(request: Request) -> dict[str, str]:
         return {
@@ -134,6 +158,45 @@ def create_app(
                 "ready" if request.app.state.document_store is not None else "unavailable"
             ),
         }
+
+    @app.get("/live", response_model=HealthResponse, tags=["operations"])
+    def liveness(request: Request) -> dict[str, str]:
+        """Report process liveness without checking downstream dependencies."""
+
+        return health(request)
+
+    @app.get(
+        "/ready",
+        response_model=ReadinessResponse,
+        responses={503: {"model": ReadinessResponse}},
+        tags=["operations"],
+    )
+    def readiness(request: Request) -> Response:
+        """Verify dependencies required by the configured runtime profile."""
+
+        database_status = "ready"
+        try:
+            engine: Engine = request.app.state.engine
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+        except Exception as exc:
+            database_status = "unavailable"
+            logger.warning("database_readiness_failed", error=str(exc))
+
+        if not app_settings.knowledge_search_enabled:
+            search_status = "disabled"
+        elif request.app.state.document_store is not None:
+            search_status = "ready"
+        else:
+            search_status = "unavailable"
+        is_ready = database_status == "ready" and search_status in {"ready", "disabled"}
+        payload = {
+            "status": "ready" if is_ready else "not_ready",
+            "version": __version__,
+            "database": database_status,
+            "document_search": search_status,
+        }
+        return JSONResponse(payload, status_code=200 if is_ready else 503)
 
     @app.get("/api/v1/members", response_model=list[MemberResponse], tags=["members"])
     def members(

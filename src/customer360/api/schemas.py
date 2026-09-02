@@ -9,6 +9,13 @@ class HealthResponse(BaseModel):
     document_search: str
 
 
+class ReadinessResponse(BaseModel):
+    status: str
+    version: str
+    database: str
+    document_search: str
+
+
 class MemberResponse(BaseModel):
     member_id: str
     source_member_id: str

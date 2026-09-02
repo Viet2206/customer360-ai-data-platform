@@ -52,6 +52,28 @@ def test_document_search_returns_ranked_evidence() -> None:
     assert health.json()["document_search"] == "ready"
 
 
+def test_operational_endpoints_and_request_correlation() -> None:
+    store = InMemoryVectorStore(HashEmbedder())
+    app = create_app(
+        Settings(database_url="sqlite://", knowledge_search_enabled=True),
+        document_store=store,
+    )
+
+    with TestClient(app) as client:
+        live = client.get("/live", headers={"X-Request-ID": "test-request-42"})
+        ready = client.get("/ready")
+
+    assert live.status_code == 200
+    assert live.headers["X-Request-ID"] == "test-request-42"
+    assert ready.status_code == 200
+    assert ready.json() == {
+        "status": "ready",
+        "version": live.json()["version"],
+        "database": "ready",
+        "document_search": "ready",
+    }
+
+
 def test_document_search_requires_configured_index() -> None:
     app = create_app(Settings(database_url="sqlite://"))
 
