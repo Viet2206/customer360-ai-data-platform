@@ -193,6 +193,9 @@ def _silver(data_root: Path, run_id: str) -> dict[str, int]:
             "policy_number": row["policy_number"],
             "service_date": row["service_date"],
             "claim_status": row["claim_status"].lower(),
+            "claim_status_reason": row["claim_status_reason"],
+            "service_category": row["service_category"],
+            "provider_name": row["provider_name"],
             "allowed_amount": float(row["allowed_amount"]),
             "plan_paid_amount": float(row["plan_paid_amount"]),
             "member_responsibility": float(row["member_responsibility"]),
@@ -222,6 +225,7 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
     plans = read_delta(data_root / "silver" / "plans")
     coverage = read_delta(data_root / "silver" / "coverage")
     claims = read_delta(data_root / "silver" / "claims")
+    quality_issues = read_delta(data_root / "quarantine" / "records")
 
     identity = resolve_members(members)
     member_keys = identity.source_to_member
@@ -235,6 +239,14 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
     claims_by_member: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in claims:
         claims_by_member[member_keys[row["source_member_id"]]].append(row)
+    quality_by_member: dict[str, int] = defaultdict(int)
+    for issue in quality_issues:
+        source_member_id = issue.get("source_member_id")
+        if source_member_id in member_keys:
+            quality_by_member[member_keys[source_member_id]] += 1
+    source_count_by_member: dict[str, int] = defaultdict(int)
+    for row in identity.xref:
+        source_count_by_member[row["member_id"]] += 1
 
     member_360: list[dict[str, Any]] = []
     for member in dim_member:
@@ -270,6 +282,11 @@ def _gold(data_root: Path, run_id: str) -> dict[str, int]:
                 "latest_claim_status": max(member_claims, key=lambda claim: claim["service_date"])[
                     "claim_status"
                 ],
+                "identity_source_count": source_count_by_member[member_id],
+                "identity_confidence": (
+                    "resolved" if source_count_by_member[member_id] > 1 else "single_source"
+                ),
+                "quality_issue_count": quality_by_member[member_id],
                 "gold_run_id": run_id,
             }
         )

@@ -114,6 +114,17 @@ def _coverage_rows(member_count: int) -> list[dict[str, Any]]:
 
 def _claim_rows(seed: int, member_count: int, rng: random.Random) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    service_categories = ("Primary care", "Emergency", "Specialist", "Pharmacy", "Imaging")
+    provider_names = (
+        "Springfield Medical Group",
+        "Community General Hospital",
+        "Capital Specialty Clinic",
+    )
+    status_reasons = {
+        "paid": "Adjudicated and paid",
+        "pending": "Additional information review",
+        "denied": "Benefit or authorization review",
+    }
     for index in range(member_count * 2):
         member_index = index % member_count
         allowed = round(rng.uniform(80, 1800), 2)
@@ -126,6 +137,9 @@ def _claim_rows(seed: int, member_count: int, rng: random.Random) -> list[dict[s
                 "policy_number": f"POL-{20250000 + member_index + 1}",
                 "service_date": (date(2025, 1, 15) + timedelta(days=index * 3)).isoformat(),
                 "claim_status": status,
+                "claim_status_reason": status_reasons[status],
+                "service_category": service_categories[index % len(service_categories)],
+                "provider_name": provider_names[index % len(provider_names)],
                 "allowed_amount": f"{allowed:.2f}",
                 "plan_paid_amount": f"{max(allowed - member_amount, 0):.2f}",
                 "member_responsibility": f"{member_amount:.2f}",

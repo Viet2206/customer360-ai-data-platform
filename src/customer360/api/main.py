@@ -10,20 +10,32 @@ from typing import Any
 import structlog
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from prometheus_client import make_asgi_app
-from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 
 from customer360 import __version__
+from customer360.api.schemas import (
+    AssistantRequest,
+    AssistantResponse,
+    ClaimResponse,
+    DocumentSearchResponse,
+    HealthResponse,
+    IdentityResponse,
+    MemberResponse,
+    QualityIssueResponse,
+)
 from customer360.assistant.service import GroundedAssistant, SearchStore
 from customer360.common.config import Settings, get_settings
 from customer360.retrieval.core import HashEmbedder, OpenSearchVectorStore, load_markdown_chunks
-from customer360.serving.member360 import build_engine, get_member, list_members
+from customer360.serving.member360 import (
+    build_engine,
+    get_member,
+    get_member_identity,
+    list_member_claims,
+    list_member_quality_issues,
+    list_members,
+)
 
 logger = structlog.get_logger(__name__)
-
-
-class AssistantRequest(BaseModel):
-    question: str = Field(min_length=3, max_length=1000)
 
 
 def _authorize_role(x_role: str = Header(default="analyst")) -> str:
@@ -38,6 +50,15 @@ def _project_member(member: dict[str, Any], role: str) -> dict[str, Any]:
     masked = dict(member)
     for field in ("full_name", "date_of_birth", "email", "phone", "policy_number"):
         masked[field] = "***"
+    return masked
+
+
+def _project_claim(claim: dict[str, Any], role: str) -> dict[str, Any]:
+    if role == "analyst":
+        return claim
+    masked = dict(claim)
+    masked["source_member_id"] = "***"
+    masked["policy_number"] = "***"
     return masked
 
 
@@ -104,7 +125,7 @@ def create_app(
     )
     app.mount("/metrics", make_asgi_app())
 
-    @app.get("/health")
+    @app.get("/health", response_model=HealthResponse, tags=["operations"])
     def health(request: Request) -> dict[str, str]:
         return {
             "status": "ok",
@@ -114,7 +135,7 @@ def create_app(
             ),
         }
 
-    @app.get("/api/v1/members")
+    @app.get("/api/v1/members", response_model=list[MemberResponse], tags=["members"])
     def members(
         request: Request,
         limit: int = Query(100, ge=1, le=500),
@@ -124,7 +145,7 @@ def create_app(
         engine: Engine = request.app.state.engine
         return [_project_member(row, role) for row in list_members(engine, limit=limit)]
 
-    @app.get("/api/v1/members/{member_id}")
+    @app.get("/api/v1/members/{member_id}", response_model=MemberResponse, tags=["members"])
     def member(
         request: Request, member_id: str, x_role: str = Header(default="analyst")
     ) -> dict[str, Any]:
@@ -135,14 +156,72 @@ def create_app(
             raise HTTPException(status_code=404, detail="Member not found")
         return _project_member(result, role)
 
-    @app.post("/api/v1/assistant")
+    @app.get(
+        "/api/v1/members/{member_id}/claims",
+        response_model=list[ClaimResponse],
+        tags=["members"],
+    )
+    def member_claims(
+        request: Request,
+        member_id: str,
+        x_role: str = Header(default="analyst"),
+    ) -> list[dict[str, Any]]:
+        role = _authorize_role(x_role)
+        engine: Engine = request.app.state.engine
+        if get_member(engine, member_id) is None:
+            raise HTTPException(status_code=404, detail="Member not found")
+        return [_project_claim(row, role) for row in list_member_claims(engine, member_id)]
+
+    @app.get(
+        "/api/v1/members/{member_id}/identity",
+        response_model=IdentityResponse,
+        tags=["governance"],
+    )
+    def member_identity(
+        request: Request,
+        member_id: str,
+        x_role: str = Header(default="analyst"),
+    ) -> dict[str, list[dict[str, Any]]]:
+        role = _authorize_role(x_role)
+        if role != "analyst":
+            raise HTTPException(status_code=403, detail="Identity evidence requires analyst role")
+        engine: Engine = request.app.state.engine
+        if get_member(engine, member_id) is None:
+            raise HTTPException(status_code=404, detail="Member not found")
+        return get_member_identity(engine, member_id)
+
+    @app.get(
+        "/api/v1/members/{member_id}/quality-issues",
+        response_model=list[QualityIssueResponse],
+        tags=["governance"],
+    )
+    def member_quality_issues(
+        request: Request,
+        member_id: str,
+        x_role: str = Header(default="analyst"),
+    ) -> list[dict[str, Any]]:
+        _authorize_role(x_role)
+        engine: Engine = request.app.state.engine
+        if get_member(engine, member_id) is None:
+            raise HTTPException(status_code=404, detail="Member not found")
+        return list_member_quality_issues(engine, member_id)
+
+    @app.post(
+        "/api/v1/assistant",
+        response_model=AssistantResponse,
+        tags=["knowledge"],
+    )
     def assistant_answer(request: Request, payload: AssistantRequest) -> dict[str, Any]:
         runtime_assistant: GroundedAssistant | None = request.app.state.assistant
         if runtime_assistant is None:
             raise HTTPException(status_code=503, detail="Knowledge index is not configured")
         return asdict(runtime_assistant.answer(payload.question))
 
-    @app.get("/api/v1/documents/search")
+    @app.get(
+        "/api/v1/documents/search",
+        response_model=list[DocumentSearchResponse],
+        tags=["knowledge"],
+    )
     def search_documents(
         request: Request,
         q: str = Query(min_length=3, max_length=500),

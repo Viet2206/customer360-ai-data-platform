@@ -50,11 +50,35 @@ def test_source_to_member_api(tmp_path: Path) -> None:
         assert detail.status_code == 200
         assert detail.json()["source_member_id"] == "MEM-00001"
 
+        claims = client.get(f"/api/v1/members/{members[0]['member_id']}/claims")
+        assert claims.status_code == 200
+        assert len(claims.json()) == 2
+        assert claims.json()[0]["provider_name"]
+        assert claims.json()[0]["claim_status_reason"]
+
+        identity = client.get(f"/api/v1/members/{members[0]['member_id']}/identity")
+        assert identity.status_code == 200
+        assert identity.json()["sources"]
+
+        quality = client.get(f"/api/v1/members/{members[0]['member_id']}/quality-issues")
+        assert quality.status_code == 200
+        assert quality.json() == []
+
         missing = client.get("/api/v1/members/not-a-member")
         assert missing.status_code == 404
 
         masked = client.get("/api/v1/members", headers={"X-Role": "analytics"})
         assert masked.json()[0]["email"] == "***"
+        masked_claims = client.get(
+            f"/api/v1/members/{members[0]['member_id']}/claims",
+            headers={"X-Role": "analytics"},
+        )
+        assert masked_claims.json()[0]["policy_number"] == "***"
+        restricted_identity = client.get(
+            f"/api/v1/members/{members[0]['member_id']}/identity",
+            headers={"X-Role": "analytics"},
+        )
+        assert restricted_identity.status_code == 403
 
         forbidden = client.get("/api/v1/members", headers={"X-Role": "unknown"})
         assert forbidden.status_code == 403

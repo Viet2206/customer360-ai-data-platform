@@ -10,6 +10,9 @@ from customer360.pipelines.medallion import run_pipeline
 from customer360.serving.member360 import (
     build_engine,
     get_member,
+    get_member_identity,
+    list_member_claims,
+    list_member_quality_issues,
     list_members,
     publish_member_360,
 )
@@ -44,9 +47,19 @@ def test_publish_and_query_member_360(tmp_path: Path) -> None:
     engine = build_engine(DATABASE_URL)
     members = list_members(engine)
     first = get_member(engine, members[0]["member_id"])
+    claims = list_member_claims(engine, members[0]["member_id"])
+    identity = get_member_identity(engine, members[0]["member_id"])
+    quality_issues = list_member_quality_issues(engine, members[0]["member_id"])
     engine.dispose()
 
     assert publish.member_count == 3
     assert len(members) == 3
     assert first is not None
     assert first["source_member_id"] == "MEM-00001"
+    assert len(claims) == 2
+    assert all(claim["claim_status_reason"] for claim in claims)
+    assert len(identity["sources"]) == 1
+    assert not identity["decisions"] or identity["decisions"][0]["decision_model_version"]
+    assert quality_issues == []
+    assert publish.claim_count == 6
+    assert publish.identity_source_count == 3

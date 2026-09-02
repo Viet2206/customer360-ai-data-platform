@@ -81,7 +81,9 @@ def publish_serving(data_root: Annotated[Path, typer.Option()] = Path("data")) -
     result = publish_member_360(data_root, settings.database_url)
     typer.echo(
         f"publish_id={result.publish_id} gold_run_id={result.gold_run_id} "
-        f"members={result.member_count} status=ok"
+        f"members={result.member_count} claims={result.claim_count} "
+        f"identity_sources={result.identity_source_count} "
+        f"quality_issues={result.quality_issue_count} status=ok"
     )
 
 
