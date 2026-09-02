@@ -2,7 +2,7 @@
   <title id="title">Customer 360 AI Data Platform — technical architecture</title>
   <desc id="desc">Technical data architecture showing payer source releases, medallion Delta processing, data quality, identity resolution, PostgreSQL serving, versioned OpenSearch retrieval, FastAPI, Streamlit, and operational controls.</desc>
   <defs>
-    <marker id="data-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#334155"/></marker>
+    <marker id="data-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#334155"/></marker>
     <marker id="meta-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker>
     <style>
       .title{font:700 34px Inter,Arial,sans-serif;fill:#0f172a}.subtitle{font:400 17px Inter,Arial,sans-serif;fill:#475569}
