@@ -63,3 +63,26 @@ def test_publish_and_query_member_360(tmp_path: Path) -> None:
     assert quality_issues == []
     assert publish.claim_count == 6
     assert publish.identity_source_count == 3
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not _postgres_available(), reason="local PostgreSQL is not running")
+def test_publish_filters_identity_sources_without_serving_member(tmp_path: Path) -> None:
+    source_dir = tmp_path / "source"
+    data_root = tmp_path / "lakehouse"
+    generate_dataset(
+        source_dir,
+        seed=778,
+        member_count=4,
+        duplicate_count=2,
+        inject_defects=True,
+    )
+    run_pipeline(source_dir, data_root)
+
+    publish = publish_member_360(data_root, DATABASE_URL)
+    engine = build_engine(DATABASE_URL)
+    members = list_members(engine)
+    engine.dispose()
+
+    assert publish.member_count == len(members)
+    assert publish.identity_source_count >= publish.member_count

@@ -204,12 +204,15 @@ def publish_member_360(data_root: Path, database_url: str) -> PublishResult:
     if len(gold_run_ids) != 1:
         raise ValueError(f"Expected one Gold run ID, found {sorted(gold_run_ids)}")
     gold_run_id = gold_run_ids.pop()
+    published_member_ids = {str(row["member_id"]) for row in rows}
     claims = read_delta(data_root / "gold" / "fact_claim")
     identity_sources = read_delta(data_root / "gold" / "member_identifier_xref")
     identity_decisions = read_delta(data_root / "gold" / "identity_match_decision")
     quality_issues = read_delta(data_root / "quarantine" / "records")
     source_to_member = {
-        str(row["source_member_id"]): str(row["member_id"]) for row in identity_sources
+        str(row["source_member_id"]): str(row["member_id"])
+        for row in identity_sources
+        if str(row["member_id"]) in published_member_ids
     }
     claim_rows = [
         {
@@ -240,6 +243,7 @@ def publish_member_360(data_root: Path, database_url: str) -> PublishResult:
             "run_id": row["run_id"],
         }
         for row in identity_sources
+        if str(row["member_id"]) in published_member_ids
     ]
     identity_decision_rows = [
         {
@@ -262,6 +266,7 @@ def publish_member_360(data_root: Path, database_url: str) -> PublishResult:
             },
         }
         for row in identity_decisions
+        if str(row["member_id"]) in published_member_ids
     ]
     quality_issue_rows = [
         {

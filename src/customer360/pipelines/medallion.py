@@ -66,7 +66,8 @@ def _write_delta(
         raise ValueError(f"Cannot write empty Delta table without a schema: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pylist(rows) if rows else pa.Table.from_pylist([], schema=empty_schema)
-    write_deltalake(str(path), table, mode="overwrite")
+    # Rebuildable layers must accept intentional contract evolution on replay.
+    write_deltalake(str(path), table, mode="overwrite", schema_mode="overwrite")
 
 
 def _sha256(path: Path) -> str:

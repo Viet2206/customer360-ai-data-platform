@@ -4,7 +4,16 @@ from pathlib import Path
 import pytest
 
 from customer360.generation.synthetic import generate_dataset
-from customer360.pipelines.medallion import read_delta, run_pipeline
+from customer360.pipelines.medallion import _write_delta, read_delta, run_pipeline
+
+
+def test_delta_rebuild_accepts_additive_contract_evolution(tmp_path: Path) -> None:
+    table_path = tmp_path / "evolving_table"
+    _write_delta(table_path, [{"member_id": "M-1"}])
+
+    _write_delta(table_path, [{"member_id": "M-1", "quality_issue_count": 0}])
+
+    assert read_delta(table_path) == [{"member_id": "M-1", "quality_issue_count": 0}]
 
 
 def test_member_360_vertical_slice(tmp_path: Path) -> None:
